@@ -1,0 +1,13 @@
+# Build output
+.build/
+build/
+*.xcodeproj/
+.swiftpm/
+
+# macOS
+.DS_Store
+
+# Local AI tooling, not part of the app
+.claude/
+.agents/
+skills-lock.json
