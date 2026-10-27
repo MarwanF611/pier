@@ -1,6 +1,11 @@
-# Pier
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-dark.png">
+    <img src="docs/brand/logo-light.png" alt="Pier" width="360">
+  </picture>
+</h1>
 
-**Your Mac's vitals, music, files, and wallpaper, hidden in the notch.**
+<p align="center"><strong>Your Mac's vitals, music, files, and wallpaper, hidden in the notch.</strong></p>
 
 Pier is a small native macOS app that lives in the MacBook notch. Nothing shows until you
 move the pointer to the notch; then a panel drops out of it with live system stats, storage
@@ -129,6 +134,21 @@ Sources/Pier/Views/     SwiftUI views, including the notch shape
 
 `Pier --sensors` prints every temperature sensor your Mac exposes, which helps when adding
 support for a new chip.
+
+## Brand
+
+The mark is a pier seen from above: a deck running from the shore into the water, which is
+also the shape of the notch Pier lives in. The lantern at its tip doubles as the camera.
+
+| Asset | File |
+| --- | --- |
+| App icon (Icon Composer, Liquid Glass) | [`Resources/AppIcon.icon`](Resources/AppIcon.icon) |
+| Icon, flat | [`pier-icon.svg`](docs/brand/pier-icon.svg), [`pier-icon.png`](docs/brand/pier-icon.png) |
+| Menu bar glyph | [`pier-menubar.svg`](docs/brand/pier-menubar.svg) |
+| Logo | [`logo-light.png`](docs/brand/logo-light.png), [`logo-dark.png`](docs/brand/logo-dark.png) |
+| Social images | [`social-preview.png`](docs/brand/social-preview.png) (1280×640), [`linkedin.png`](docs/brand/linkedin.png) (1200×627 @2x) |
+
+Every asset comes from one script: `swift scripts/brand/make-brand.swift`.
 
 ## Contributing
 

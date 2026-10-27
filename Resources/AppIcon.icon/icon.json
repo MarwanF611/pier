@@ -1,0 +1,28 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "srgb:0.16000,0.63000,0.88000,1.00000",
+      "srgb:0.04000,0.19000,0.44000,1.00000"
+    ]
+  },
+  "groups" : [
+    {
+      "layers" : [
+        { "image-name" : "lantern.svg", "name" : "lantern" },
+        { "image-name" : "pier.svg", "name" : "pier" }
+      ],
+      "shadow" : { "kind" : "neutral", "opacity" : 0.5 },
+      "translucency" : { "enabled" : false, "value" : 0.4 }
+    },
+    {
+      "layers" : [
+        { "image-name" : "ripples.svg", "name" : "ripples" }
+      ],
+      "shadow" : { "kind" : "none", "opacity" : 0 },
+      "translucency" : { "enabled" : true, "value" : 0.3 }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : [ "macOS" ]
+  }
+}

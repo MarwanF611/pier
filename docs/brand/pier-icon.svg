@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs>
+<linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#28A0E0"/><stop offset="1" stop-color="#0A3070"/></linearGradient>
+<clipPath id="shape"><rect width="1024" height="1024" rx="229" ry="229"/></clipPath>
+</defs>
+<g clip-path="url(#shape)">
+<rect width="1024" height="1024" fill="url(#water)"/>
+<path d="M312.7851643933874,475.4917296149582 A212.0,212.0 0 1 0 711.2148356066126,475.4917296149582" fill="none" stroke="#FFFFFF" stroke-opacity="0.85" stroke-width="30.0" stroke-linecap="round"/>
+<path d="M213.17774659008114,439.2375944224374 A318.0,318.0 0 1 0 810.8222534099189,439.2375944224374" fill="none" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="26.0" stroke-linecap="round"/>
+<path d="M0,0 H1024.0 V176.0 H706.0 Q642.0,176.0 642.0,240.0 V522.0 Q642.0,640.0 524.0,640.0 H500.0 Q382.0,640.0 382.0,522.0 V240.0 Q382.0,176.0 318.0,176.0 H0 Z" fill="#0B0E14"/>
+<path d="M416.0,262.0 H608.0" stroke="#222835" stroke-width="14" stroke-linecap="round"/>
+<path d="M416.0,338.0 H608.0" stroke="#222835" stroke-width="14" stroke-linecap="round"/>
+<path d="M416.0,414.0 H608.0" stroke="#222835" stroke-width="14" stroke-linecap="round"/>
+<circle cx="512.0" cy="548.0" r="44.0" fill="#FFB238"/>
+</g>
+</svg>

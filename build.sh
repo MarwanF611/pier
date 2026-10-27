@@ -9,7 +9,10 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/Pier "$APP/Contents/MacOS/Pier"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
-[[ -f Resources/AppIcon.icns ]] && cp Resources/AppIcon.icns "$APP/Contents/Resources/"
+# Compile the Icon Composer icon: Assets.car carries the Liquid Glass version, the .icns a fallback.
+xcrun actool Resources/AppIcon.icon --compile "$APP/Contents/Resources" --platform macosx \
+    --minimum-deployment-target 26.0 --app-icon AppIcon --include-all-app-icons \
+    --output-partial-info-plist .build/icon-partial.plist --errors > /dev/null
 codesign --force --sign - "$APP"
 echo "Built $APP"
 

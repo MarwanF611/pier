@@ -10,8 +10,57 @@ struct PierApp: App {
             MenuBarContent()
                 .environment(delegate.model)
         } label: {
-            Image(systemName: "dock.rectangle")
+            Image(nsImage: MenuBarGlyph.image)
+                .accessibilityLabel("Pier")
         }
+    }
+}
+
+/// The Pier mark reduced to one color for the menu bar: the shore, the pier hanging from it,
+/// and a ripple. Drawn as a template so macOS tints it for light, dark, and highlighted states.
+/// Same shape as docs/brand/pier-menubar.svg.
+enum MenuBarGlyph {
+    static let image: NSImage = {
+        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { _ in
+            NSColor.black.set()
+            // Shore along the top and the pier hanging from it, with the lantern cut out.
+            let pier = NSBezierPath()
+            pier.move(to: NSPoint(x: 1, y: 1.5))
+            pier.line(to: NSPoint(x: 17, y: 1.5))
+            pier.line(to: NSPoint(x: 17, y: 4))
+            pier.line(to: NSPoint(x: 12.3, y: 4))
+            pier.quad(to: NSPoint(x: 11.4, y: 4.9), control: NSPoint(x: 11.4, y: 4))
+            pier.line(to: NSPoint(x: 11.4, y: 9.3))
+            pier.quad(to: NSPoint(x: 9.2, y: 11.5), control: NSPoint(x: 11.4, y: 11.5))
+            pier.line(to: NSPoint(x: 8.8, y: 11.5))
+            pier.quad(to: NSPoint(x: 6.6, y: 9.3), control: NSPoint(x: 6.6, y: 11.5))
+            pier.line(to: NSPoint(x: 6.6, y: 4.9))
+            pier.quad(to: NSPoint(x: 5.7, y: 4), control: NSPoint(x: 6.6, y: 4))
+            pier.line(to: NSPoint(x: 1, y: 4))
+            pier.close()
+            pier.appendOval(in: NSRect(x: 7.9, y: 8.1, width: 2.2, height: 2.2))
+            pier.windingRule = .evenOdd
+            pier.fill()
+
+            // A ripple ring around the tip, rising up both sides of the pier.
+            let ripple = NSBezierPath()
+            ripple.appendArc(withCenter: NSPoint(x: 9, y: 9.2), radius: 5.2, startAngle: 200, endAngle: -20, clockwise: true)
+            ripple.lineWidth = 1.5
+            ripple.lineCapStyle = .round
+            ripple.stroke()
+            return true
+        }
+        image.isTemplate = true
+        return image
+    }()
+}
+
+private extension NSBezierPath {
+    func quad(to end: NSPoint, control: NSPoint) {
+        let start = currentPoint
+        curve(to: end,
+              controlPoint1: NSPoint(x: start.x + (control.x - start.x) * 2 / 3, y: start.y + (control.y - start.y) * 2 / 3),
+              controlPoint2: NSPoint(x: end.x + (control.x - end.x) * 2 / 3, y: end.y + (control.y - end.y) * 2 / 3))
     }
 }
 

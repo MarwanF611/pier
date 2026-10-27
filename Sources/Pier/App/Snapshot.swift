@@ -10,6 +10,18 @@ enum Snapshot {
         try? await Task.sleep(for: .seconds(3.5)) // let stats, music, and thumbnails arrive
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
+        // The menu bar glyph at 8x, black on white.
+        let glyph = NSImage(size: NSSize(width: 144, height: 144), flipped: false) { rect in
+            NSColor.white.setFill()
+            rect.fill()
+            MenuBarGlyph.image.draw(in: rect)
+            return true
+        }
+        if let tiff = glyph.tiffRepresentation {
+            try? NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:])?
+                .write(to: folder.appendingPathComponent("menubar-glyph.png"))
+        }
+
         let wallpaper = NSScreen.main.flatMap { NSWorkspace.shared.desktopImageURL(for: $0) }
             .flatMap { WallpaperManager.downsample($0, maxPixel: 1600) }
 
