@@ -52,6 +52,15 @@ final class DockPanelController {
         panel.contentView = hostingView
 
         model.dock.onLayoutChange = { [weak self] in self?.layout() }
+        model.dock.onRequestKeyboard = { [panel] in panel.makeKeyAndOrderFront(nil) }
+        // A click anywhere outside Pier ends a hold from typing. Watching clicks in other apps
+        // needs no permission; only keystrokes would.
+        NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let dock = self?.model.dock, dock.isHeldOpen else { return }
+                dock.closeHeld()
+            }
+        }
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.layout() }
         }
@@ -138,7 +147,7 @@ final class DockPanelController {
         hoverStartedAt = nil
         // Close even while a cleanup runs: it carries on in the model, and it may be waiting
         // on a system permission prompt that the open panel would cover.
-        guard dock.isExpanded, !dock.isPinned else { leftAt = nil; return }
+        guard dock.isExpanded, !dock.isPinned, !dock.isHeldOpen else { leftAt = nil; return }
         if let peek = dock.peekUntil, peek > now { return }
         if let left = leftAt {
             if now.timeIntervalSince(left) >= Self.closeDelay {

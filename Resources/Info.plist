@@ -26,6 +26,10 @@
     <true/>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>Pier saves your notes as files in the folders you choose, like Pier Notes in Documents.</string>
+    <key>NSDesktopFolderUsageDescription</key>
+    <string>Pier saves your notes as files in the folders you choose.</string>
     <key>NSDownloadsFolderUsageDescription</key>
     <string>Pier looks for old installers in Downloads that you can clean up.</string>
     <key>NSAppleEventsUsageDescription</key>

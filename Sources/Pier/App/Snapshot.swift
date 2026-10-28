@@ -85,6 +85,12 @@ enum Snapshot {
             }
         }
 
+        // A sample note, saved the way a typed one is, so the Notes tab has something to show.
+        // It's deleted again below.
+        model.notes.draft = "Lecture 4: Fourier series\nPeriodic signals as sums of sines."
+        await model.notes.saveDraft()
+        let sample = model.notes.notes.first { $0.text.hasPrefix("Lecture 4: Fourier series") }
+
         // Every other tab of the open notch panel.
         dock.placement = .notch
         dock.isPinned = true
@@ -94,6 +100,13 @@ enum Snapshot {
             await capture("live-notch-open-\(tab.rawValue).png")
         }
         dock.tab = .home
+        if let sample { try? FileManager.default.removeItem(at: sample.url) }
+
+        // The note field after ⌃⌥N, ready to type with the pointer elsewhere.
+        dock.isPinned = false
+        model.startNote()
+        await capture("live-notch-quick-note.png")
+        dock.closeHeld()
 
         // Claude Code at work beside the closed notch.
         let claude = ["session_id": "selfshot", "cwd": "/Users/pier/Projects/pier"]

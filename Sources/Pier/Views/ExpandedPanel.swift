@@ -54,6 +54,7 @@ struct ExpandedPanel: View {
                     .frame(width: Self.columnWidth)
                     .frame(maxHeight: .infinity)
             }
+        case (.notes, _): NotesSection().frame(width: width)
         case (.clipboard, _): ClipboardSection().frame(width: width)
         case (.claude, _): ClaudeSection().frame(width: width)
         case (.shelf, _): ShelfSection().frame(width: width)
@@ -105,7 +106,7 @@ private struct PanelHeader: View {
                 .foregroundStyle(.secondary)
         }
         // Equal width on both sides keeps the tabs centered under the notch.
-        .frame(width: layout == .wide ? 200 : nil, alignment: .leading)
+        .frame(width: layout == .wide ? 180 : nil, alignment: .leading)
     }
 
     private var controls: some View {
@@ -131,7 +132,7 @@ private struct PanelHeader: View {
             .help("More")
             .accessibilityLabel("More")
         }
-        .frame(width: layout == .wide ? 200 : nil, alignment: .trailing)
+        .frame(width: layout == .wide ? 180 : nil, alignment: .trailing)
     }
 }
 

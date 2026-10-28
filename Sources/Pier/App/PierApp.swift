@@ -120,6 +120,8 @@ private struct MenuBarContent: View {
         Toggle("Show Pier", isOn: $dock.isVisible)
         Toggle("Keep Open", isOn: $dock.isPinned)
         Divider()
+        Button("New Note") { model.startNote() }
+            .keyboardShortcut("n", modifiers: [.control, .option])
         Button("Take Screenshot to Shelf") { model.captureScreenshot() }
             .keyboardShortcut(KeyEquivalent("\u{F708}") /* NSF5FunctionKey */, modifiers: [.command, .shift])
         Button("Copy Text from Screen") { model.captureText() }

@@ -34,13 +34,14 @@ enum NotchStat: String, CaseIterable, Identifiable {
 
 /// What the open panel shows. Home has the everyday sections; the rest each get the room.
 enum PanelTab: String, CaseIterable, Identifiable {
-    case home, clipboard, claude, shelf, wallpaper, ask
+    case home, notes, clipboard, claude, shelf, wallpaper, ask
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .home: "Home"
+        case .notes: "Notes"
         case .clipboard: "Clipboard"
         case .claude: "Claude Code"
         case .shelf: "Shelf"
@@ -52,6 +53,7 @@ enum PanelTab: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .home: "house"
+        case .notes: "note.text"
         case .clipboard: "list.clipboard"
         case .claude: "terminal"
         case .shelf: "tray"
@@ -90,6 +92,11 @@ final class DockState {
     }
     /// While set, the panel stays open even without the pointer over it.
     var peekUntil: Date?
+    /// Set while typing in the panel, so it stays open with the pointer elsewhere until a
+    /// click outside Pier, Escape, or saving closes it.
+    var isHeldOpen = false
+    /// Bumped to put the cursor in the note field.
+    var noteFocusRequest = 0
 
     var isPinned = UserDefaults.standard.bool(forKey: "pinned") {
         didSet { UserDefaults.standard.set(isPinned, forKey: "pinned") }
@@ -131,6 +138,14 @@ final class DockState {
     }
 
     @ObservationIgnored var onLayoutChange: (() -> Void)?
+    /// Makes the dock window take the keyboard, set by the window controller.
+    @ObservationIgnored var onRequestKeyboard: (() -> Void)?
+
+    /// Ends a hold from typing and closes the panel, unless it's pinned open.
+    func closeHeld() {
+        isHeldOpen = false
+        if !isPinned { isExpanded = false }
+    }
 
     /// Opens the panel for a moment, e.g. to show a screenshot that just landed on the shelf.
     func peek(for seconds: TimeInterval = 2.5) {
@@ -150,6 +165,7 @@ final class AppModel {
     let shelf = ShelfStore()
     let activities = LiveActivities()
     let clipboard = ClipboardHistory()
+    let notes = NotesStore()
     let keepAwake = KeepAwake()
     @ObservationIgnored private(set) lazy var claude = ClaudeSessions(activities: activities)
     @ObservationIgnored private(set) lazy var assistant = Assistant(model: self)
@@ -157,10 +173,12 @@ final class AppModel {
     private(set) var launchesAtLogin = SMAppService.mainApp.status == .enabled
     @ObservationIgnored private var screenshotHotKey: HotKey?
     @ObservationIgnored private var textCaptureHotKey: HotKey?
+    @ObservationIgnored private var noteHotKey: HotKey?
     @ObservationIgnored private var isCapturing = false
 
     static let screenshotShortcut = "⌘⇧F5"
     static let textCaptureShortcut = "⌘⇧F6"
+    static let noteShortcut = "⌃⌥N"
 
     func start() {
         monitor.onSample = { [weak self] in self?.activities.observe($0) }
@@ -169,12 +187,27 @@ final class AppModel {
         activities.start()
         clipboard.start()
         claude.start()
+        // A folder prompt can't show while the panel covers it.
+        notes.onSlowAccess = { [weak self] in self?.dock.closeHeld() }
         screenshotHotKey = HotKey(keyCode: kVK_F5, modifiers: cmdKey | shiftKey) { [weak self] in
             MainActor.assumeIsolated { self?.captureScreenshot() }
         }
         textCaptureHotKey = HotKey(keyCode: kVK_F6, modifiers: cmdKey | shiftKey) { [weak self] in
             MainActor.assumeIsolated { self?.captureText() }
         }
+        noteHotKey = HotKey(keyCode: kVK_ANSI_N, modifiers: controlKey | optionKey) { [weak self] in
+            MainActor.assumeIsolated { self?.startNote() }
+        }
+    }
+
+    /// Drops the note field out of the notch, ready to type, from anywhere.
+    func startNote() {
+        dock.isVisible = true
+        dock.tab = .notes
+        dock.isExpanded = true
+        dock.isHeldOpen = true
+        dock.noteFocusRequest += 1
+        dock.onRequestKeyboard?()
     }
 
     /// Lets the user drag out a region (or press Space for a window) and stashes the result on the shelf.
