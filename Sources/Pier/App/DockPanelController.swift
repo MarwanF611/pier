@@ -109,6 +109,13 @@ final class DockPanelController {
         let dock = model.dock
         guard dock.isVisible else { return }
 
+        // Typing into Ask Pier makes the panel key. Once it closes, hand the keyboard back to
+        // the app in front, so keystrokes don't keep landing in a panel that's gone.
+        if !dock.isExpanded, panel.isKeyWindow {
+            panel.orderOut(nil)
+            panel.orderFrontRegardless()
+        }
+
         let inside = surfaceOnScreen.insetBy(dx: -2, dy: -2).contains(NSEvent.mouseLocation)
         panel.ignoresMouseEvents = !inside
         let now = Date.now

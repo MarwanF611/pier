@@ -20,6 +20,7 @@ struct ExpandedPanel: View {
             case .column:
                 VStack(spacing: 10) {
                     PanelHeader()
+                    AssistantSection()
                     SystemSection()
                     StorageSection()
                     MusicSection()
@@ -30,6 +31,7 @@ struct ExpandedPanel: View {
                 HStack(alignment: .top, spacing: 10) {
                     VStack(spacing: 10) {
                         PanelHeader()
+                        AssistantSection()
                         SystemSection()
                         StorageSection()
                     }

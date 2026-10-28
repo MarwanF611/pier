@@ -116,6 +116,7 @@ final class AppModel {
     let cleaner = StorageCleaner()
     let shelf = ShelfStore()
     let activities = LiveActivities()
+    @ObservationIgnored private(set) lazy var assistant = Assistant(model: self)
 
     private(set) var launchesAtLogin = SMAppService.mainApp.status == .enabled
     @ObservationIgnored private var screenshotHotKey: HotKey?

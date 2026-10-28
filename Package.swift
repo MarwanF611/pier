@@ -17,6 +17,7 @@ let package = Package(
             linkerSettings: [
                 .linkedFramework("Carbon"),
                 .linkedFramework("CoreAudio"),
+                .linkedFramework("FoundationModels"),
                 .linkedFramework("IOKit"),
                 .linkedFramework("QuickLookThumbnailing"),
                 .linkedFramework("ServiceManagement"),
