@@ -76,8 +76,7 @@ final class DockPanelController {
         case .notch:
             // Prefer the built-in display, which is the one with the notch.
             guard let screen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) ?? NSScreen.screens.first else { return }
-            dock.screenHasNotch = screen.safeAreaInsets.top > 0
-            if dock.screenHasNotch, let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
+            if screen.safeAreaInsets.top > 0, let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
                 dock.notchSize = CGSize(width: screen.frame.width - left.width - right.width, height: screen.safeAreaInsets.top)
             } else {
                 // No notch: an invisible hover target in the middle of the menu bar.

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Pier hidden in the notch. Closed, it is a black shape exactly the size of the camera
+/// Pier hidden in the notch. Closed, it is an invisible hover target over the camera
 /// housing, so nothing shows. Open, the same shape grows down into the panel, the way
 /// the Dynamic Island grows out of the top of an iPhone.
 struct NotchSurface: View {
@@ -31,8 +31,9 @@ struct NotchSurface: View {
         .background {
             let hasEars = !NotchEars.isEmpty(model)
             NotchShape(flare: Self.flare, bottomRadius: expanded ? 32 : hasEars ? 14 : 10)
-                // Without a camera housing there is nothing to blend into, so stay invisible.
-                .fill(dock.screenHasNotch || expanded || hasEars ? Color.black : Color.black.opacity(0.001))
+                // Closed with nothing to show, the camera housing itself is the notch: drawing a
+                // copy over it never lines up exactly, so leave only an invisible hover target.
+                .fill(expanded || hasEars ? Color.black : Color.black.opacity(0.001))
                 .overlay {
                     NotchShape(flare: Self.flare, bottomRadius: 32)
                         .stroke(Color.accentColor, lineWidth: 2)

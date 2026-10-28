@@ -74,7 +74,6 @@ final class DockState {
     /// Size of the camera housing at the top of the screen, or of a stand-in hover target on
     /// displays without one. Set by the window controller.
     var notchSize = CGSize(width: 200, height: 32)
-    var screenHasNotch = false
     var isVisible = true {
         didSet { onLayoutChange?() }
     }
