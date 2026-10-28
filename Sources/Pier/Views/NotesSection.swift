@@ -33,6 +33,7 @@ struct NotesSection: View {
             }
         } content: {
             FolderChips()
+            StudyBar()
             if newFolderName != nil {
                 NewFolderField(name: $newFolderName)
             } else if let note = editing {

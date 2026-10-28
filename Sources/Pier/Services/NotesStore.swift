@@ -97,16 +97,21 @@ final class NotesStore {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
         let folder = selectedFolder
-        let saved = await files {
+        guard await write(text + "\n", named: Self.fileName(for: text), in: folder) != nil else { return nil }
+        draft = ""
+        return folder
+    }
+
+    /// Writes a new note file without replacing an existing one; returns where it went.
+    func write(_ text: String, named base: String, in folder: NoteFolder) async -> URL? {
+        let url = await files {
             // The folder may not exist yet, or may have been removed in Finder.
             try? FileManager.default.createDirectory(at: folder.url, withIntermediateDirectories: true)
-            let url = Self.freeURL(in: folder.url, base: Self.fileName(for: text))
-            return (try? (text + "\n").write(to: url, atomically: true, encoding: .utf8)) != nil
+            let url = Self.freeURL(in: folder.url, base: Self.safeName(base))
+            return (try? text.write(to: url, atomically: true, encoding: .utf8)) != nil ? url : nil
         }
-        guard saved else { return nil }
-        draft = ""
         await refresh()
-        return folder
+        return url
     }
 
     func update(_ note: Note, text: String) async {
@@ -227,18 +232,18 @@ final class NotesStore {
         return title.isEmpty ? "Note " + Date.now.formatted(.iso8601.year().month().day()) : title
     }
 
-    nonisolated private static func safeName(_ name: String) -> String {
+    nonisolated static func safeName(_ name: String) -> String {
         // "Lecture 4: Fourier" becomes "Lecture 4 Fourier"; Finder shows a colon in a name as a slash.
         name.replacingOccurrences(of: ":", with: "")
             .components(separatedBy: CharacterSet(charactersIn: "/\\")).joined(separator: "-")
             .trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: ".")))
     }
 
-    nonisolated private static func freeURL(in folder: URL, base: String) -> URL {
-        var url = folder.appendingPathComponent(base).appendingPathExtension(fileExtension)
+    nonisolated static func freeURL(in folder: URL, base: String, extension ext: String = fileExtension) -> URL {
+        var url = folder.appendingPathComponent(base).appendingPathExtension(ext)
         var counter = 2
         while FileManager.default.fileExists(atPath: url.path) {
-            url = folder.appendingPathComponent("\(base) \(counter)").appendingPathExtension(fileExtension)
+            url = folder.appendingPathComponent("\(base) \(counter)").appendingPathExtension(ext)
             counter += 1
         }
         return url

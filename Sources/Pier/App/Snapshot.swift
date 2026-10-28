@@ -108,6 +108,31 @@ enum Snapshot {
         await capture("live-notch-quick-note.png")
         dock.closeHeld()
 
+        // A focus session and a lecture being written out. With "Lecture test.m4a" in the
+        // capture folder, it's transcribed into a note there, the way a recording is.
+        dock.notchPins = []
+        model.focus.start(minutes: 25, course: model.notes.selectedFolder)
+        dock.tab = .notes
+        dock.isPinned = true
+        dock.isExpanded = true
+        await capture("live-notch-open-study.png")
+        dock.isPinned = false
+        dock.isExpanded = false
+        let audio = folder.appendingPathComponent("Lecture test.m4a")
+        if FileManager.default.fileExists(atPath: audio.path) {
+            let writing = Task {
+                await model.lectures.saveTranscript(of: audio, duration: 16, recordedAt: .now, in: NoteFolder(url: folder), language: .dutch)
+            }
+            try? await Task.sleep(for: .milliseconds(300))
+            guard let image = createImage(.null, windowsToCapture(dock: window), 0)?.takeRetainedValue() else { return }
+            try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?
+                .write(to: folder.appendingPathComponent("live-notch-transcribing.png"))
+            await writing.value
+        }
+        await capture("live-notch-focus.png")
+        model.focus.stop()
+        dock.tab = .home
+
         // Claude Code at work beside the closed notch.
         let claude = ["session_id": "selfshot", "cwd": "/Users/pier/Projects/pier"]
         model.claude.handle(claude.merging(["event": "UserPromptSubmit"]) { $1 })

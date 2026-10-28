@@ -30,6 +30,10 @@
     <string>Pier saves your notes as files in the folders you choose, like Pier Notes in Documents.</string>
     <key>NSDesktopFolderUsageDescription</key>
     <string>Pier saves your notes as files in the folders you choose.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Pier records lectures you start, and writes out what was said as a note on this Mac.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Pier turns your lecture recordings into notes with speech recognition on this Mac.</string>
     <key>NSDownloadsFolderUsageDescription</key>
     <string>Pier looks for old installers in Downloads that you can clean up.</string>
     <key>NSAppleEventsUsageDescription</key>

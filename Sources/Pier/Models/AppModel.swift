@@ -166,6 +166,8 @@ final class AppModel {
     let activities = LiveActivities()
     let clipboard = ClipboardHistory()
     let notes = NotesStore()
+    @ObservationIgnored private(set) lazy var lectures = LectureRecorder(notes: notes, activities: activities)
+    @ObservationIgnored private(set) lazy var focus = FocusTimer(activities: activities)
     let keepAwake = KeepAwake()
     @ObservationIgnored private(set) lazy var claude = ClaudeSessions(activities: activities)
     @ObservationIgnored private(set) lazy var assistant = Assistant(model: self)
@@ -174,11 +176,15 @@ final class AppModel {
     @ObservationIgnored private var screenshotHotKey: HotKey?
     @ObservationIgnored private var textCaptureHotKey: HotKey?
     @ObservationIgnored private var noteHotKey: HotKey?
+    @ObservationIgnored private var recordHotKey: HotKey?
+    @ObservationIgnored private var focusHotKey: HotKey?
     @ObservationIgnored private var isCapturing = false
 
     static let screenshotShortcut = "⌘⇧F5"
     static let textCaptureShortcut = "⌘⇧F6"
     static let noteShortcut = "⌃⌥N"
+    static let recordShortcut = "⌃⌥R"
+    static let focusShortcut = "⌃⌥T"
 
     func start() {
         monitor.onSample = { [weak self] in self?.activities.observe($0) }
@@ -189,6 +195,7 @@ final class AppModel {
         claude.start()
         // A folder prompt can't show while the panel covers it.
         notes.onSlowAccess = { [weak self] in self?.dock.closeHeld() }
+        lectures.onPrompt = { [weak self] in self?.dock.closeHeld() }
         screenshotHotKey = HotKey(keyCode: kVK_F5, modifiers: cmdKey | shiftKey) { [weak self] in
             MainActor.assumeIsolated { self?.captureScreenshot() }
         }
@@ -197,6 +204,12 @@ final class AppModel {
         }
         noteHotKey = HotKey(keyCode: kVK_ANSI_N, modifiers: controlKey | optionKey) { [weak self] in
             MainActor.assumeIsolated { self?.startNote() }
+        }
+        recordHotKey = HotKey(keyCode: kVK_ANSI_R, modifiers: controlKey | optionKey) { [weak self] in
+            MainActor.assumeIsolated { self?.lectures.toggle() }
+        }
+        focusHotKey = HotKey(keyCode: kVK_ANSI_T, modifiers: controlKey | optionKey) { [weak self] in
+            MainActor.assumeIsolated { self.map { $0.focus.toggle(course: $0.notes.selectedFolder) } }
         }
     }
 

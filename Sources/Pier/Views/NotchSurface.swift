@@ -66,7 +66,7 @@ struct NotchEars: View {
     var notch: CGSize
 
     enum Item: Hashable {
-        case artwork, waveform, keepAwake, claude
+        case artwork, waveform, keepAwake, claude, lecture, focus
         case stat(NotchStat)
         case activitySymbol(String), activityText(String)
 
@@ -75,6 +75,8 @@ struct NotchEars: View {
             case .artwork, .waveform, .keepAwake, .activitySymbol: 22
             case .stat: 54
             case .claude: 82
+            case .lecture: 78
+            case .focus: 64
             // Roughly the width of the rounded 12 pt text, so a long headphone name gets room.
             case .activityText(let text): min(150, max(40, CGFloat(text.count) * 7.5))
             }
@@ -97,7 +99,11 @@ struct NotchEars: View {
         // Keep Awake stays in sight while it's on, so it isn't left on by accident.
         let awake = model.keepAwake.isOn
         let claude = model.claude.featured != nil
-        return ((playing ? [.artwork] : []) + (claude ? [.claude] : []) + leadingStats, trailingStats + (playing ? [.waveform] : []) + (awake ? [.keepAwake] : []))
+        let lecture = model.lectures.state != .idle
+        let focus = model.focus.isActive
+        let leading: [Item] = (lecture ? [.lecture] : []) + (playing ? [.artwork] : []) + (claude ? [.claude] : []) + leadingStats
+        let trailing: [Item] = trailingStats + (playing ? [.waveform] : []) + (focus ? [.focus] : []) + (awake ? [.keepAwake] : [])
+        return (leading, trailing)
     }
 
     @MainActor
@@ -153,6 +159,10 @@ struct NotchEars: View {
             if let session = model.claude.featured {
                 ClaudeEar(session: session).frame(width: Item.claude.width, alignment: .leading)
             }
+        case .lecture:
+            LectureEar().frame(width: Item.lecture.width, alignment: .leading)
+        case .focus:
+            FocusEar().frame(width: Item.focus.width, alignment: .trailing)
         case .keepAwake:
             Image(systemName: "cup.and.heat.waves.fill")
                 .font(.system(size: 13, weight: .semibold))

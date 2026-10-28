@@ -122,6 +122,11 @@ private struct MenuBarContent: View {
         Divider()
         Button("New Note") { model.startNote() }
             .keyboardShortcut("n", modifiers: [.control, .option])
+        Button(model.lectures.isActive ? "Stop Recording & Transcribe" : "Record Lecture") { model.lectures.toggle() }
+            .keyboardShortcut("r", modifiers: [.control, .option])
+            .disabled(model.lectures.state == .transcribing)
+        Button(model.focus.isActive ? "Stop Focus" : "Focus for 25 Minutes") { model.focus.toggle(course: model.notes.selectedFolder) }
+            .keyboardShortcut("t", modifiers: [.control, .option])
         Button("Take Screenshot to Shelf") { model.captureScreenshot() }
             .keyboardShortcut(KeyEquivalent("\u{F708}") /* NSF5FunctionKey */, modifiers: [.command, .shift])
         Button("Copy Text from Screen") { model.captureText() }
