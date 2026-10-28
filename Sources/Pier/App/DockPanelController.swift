@@ -130,7 +130,9 @@ final class DockPanelController {
         }
 
         hoverStartedAt = nil
-        guard dock.isExpanded, !dock.isPinned, !isBusy else { leftAt = nil; return }
+        // Close even while a cleanup runs: it carries on in the model, and it may be waiting
+        // on a system permission prompt that the open panel would cover.
+        guard dock.isExpanded, !dock.isPinned else { leftAt = nil; return }
         if let peek = dock.peekUntil, peek > now { return }
         if let left = leftAt {
             if now.timeIntervalSince(left) >= Self.closeDelay {
@@ -141,14 +143,6 @@ final class DockPanelController {
             }
         } else {
             leftAt = now
-        }
-    }
-
-    /// Work the user started in the panel that shouldn't vanish under them.
-    private var isBusy: Bool {
-        switch model.cleaner.phase {
-        case .scanning, .ready, .cleaning: true
-        default: false
         }
     }
 }

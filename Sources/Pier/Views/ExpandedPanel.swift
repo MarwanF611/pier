@@ -76,9 +76,7 @@ private struct PanelHeader: View {
                 dock.isPinned.toggle()
             }
             Menu {
-                DockSettingsMenuItems()
-                Divider()
-                Button("Quit Pier") { NSApp.terminate(nil) }
+                DockContextMenu()
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 13, weight: .medium))

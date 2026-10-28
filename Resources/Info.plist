@@ -26,6 +26,8 @@
     <true/>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>Pier looks for old installers in Downloads that you can clean up.</string>
     <key>NSAppleEventsUsageDescription</key>
     <string>Pier controls playback in Music and Spotify and shows what's playing.</string>
 </dict>

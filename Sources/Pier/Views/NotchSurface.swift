@@ -47,6 +47,7 @@ struct NotchSurface: View {
             ShelfDrop.accept($0, into: model.shelf)
         }
         .onTapGesture { if !expanded { dock.isExpanded = true } }
+        .contextMenu { DockContextMenu() }
         .accessibilityElement(children: expanded ? .contain : .combine)
         .accessibilityLabel("Pier")
     }

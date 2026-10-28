@@ -90,6 +90,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.start()
         panelController = DockPanelController(model: model)
     }
+
+    /// Opening Pier again (Finder, Spotlight, Launchpad) brings the panel up, so its menu and
+    /// Quit are reachable even when the menu bar item is hidden behind the notch.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        model.dock.isVisible = true
+        model.dock.peek(for: 4)
+        return false
+    }
 }
 
 /// The menu bar item: a dependable way to show, configure, and quit Pier.
@@ -112,7 +120,17 @@ private struct MenuBarContent: View {
     }
 }
 
-/// Settings shared by the menu bar item and the panel's More menu.
+/// The dock's own menu (right-click, or More in the panel), so settings and Quit never
+/// depend on the menu bar item, which the open notch panel covers.
+struct DockContextMenu: View {
+    var body: some View {
+        DockSettingsMenuItems()
+        Divider()
+        Button("Quit Pier") { NSApp.terminate(nil) }
+    }
+}
+
+/// Settings shared by the menu bar item and the dock's own menus.
 struct DockSettingsMenuItems: View {
     @Environment(AppModel.self) private var model
 

@@ -27,6 +27,7 @@ struct DockRootView: View {
                     Color.clear
                     GlassEffectContainer {
                         surface(maxHeight: proxy.size.height - 24)
+                            .contextMenu { DockContextMenu() }
                     }
                     .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { dock.surfaceRect = $0 }
                     .padding(.horizontal, 10)
