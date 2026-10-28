@@ -133,11 +133,12 @@ final class NotesStore {
 
     /// Adds a folder from elsewhere on the Mac, e.g. a course folder in Documents.
     func addExistingFolder() {
-        guard let url = chooseFolder(message: "Choose a folder to save notes in, like the folder of a course.") else { return }
-        if url != root, !addedFolders.contains(url) { addedFolders.append(url) }
-        Task {
-            await refresh()
-            if let folder = folders.first(where: { $0.url == url }) { select(folder) }
+        chooseFolder(message: "Choose a folder to save notes in, like the folder of a course.") { [self] url in
+            if url != root, !addedFolders.contains(url) { addedFolders.append(url) }
+            Task {
+                await refresh()
+                if let folder = folders.first(where: { $0.url == url }) { select(folder) }
+            }
         }
     }
 
@@ -148,19 +149,21 @@ final class NotesStore {
     }
 
     func changeGeneralFolder() {
-        guard let url = chooseFolder(message: "Choose the general folder for notes. Folders inside it show up as their own folders in Pier.") else { return }
-        let wasGeneral = selected == root
-        root = url
-        UserDefaults.standard.set(url.path, forKey: "notesRoot")
-        if wasGeneral { selected = url; UserDefaults.standard.set(url.path, forKey: "noteFolder") }
-        Task { await refresh() }
+        chooseFolder(message: "Choose the general folder for notes. Folders inside it show up as their own folders in Pier.") { [self] url in
+            let wasGeneral = selected == root
+            root = url
+            UserDefaults.standard.set(url.path, forKey: "notesRoot")
+            if wasGeneral { selected = url; UserDefaults.standard.set(url.path, forKey: "noteFolder") }
+            Task { await refresh() }
+        }
     }
 
     func reveal(_ url: URL) {
         NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 
-    private func chooseFolder(message: String) -> URL? {
+    /// Shows a folder picker without blocking Pier, so the notch keeps working while it's open.
+    private func chooseFolder(message: String, then use: @escaping (URL) -> Void) {
         // The open panel would sit under Pier's own, so let Pier close first.
         onSlowAccess?()
         let panel = NSOpenPanel()
@@ -170,7 +173,10 @@ final class NotesStore {
         panel.prompt = "Use Folder"
         panel.message = message
         NSApp.activate()
-        return panel.runModal() == .OK ? panel.url : nil
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            MainActor.assumeIsolated { use(url) }
+        }
     }
 
     /// Runs file work off the main thread. If it stalls, it's most likely waiting on a

@@ -64,7 +64,11 @@ final class WallpaperManager {
         panel.prompt = "Use Folder"
         panel.message = "Choose a folder of pictures to use as wallpapers."
         NSApp.activate()
-        if panel.runModal() == .OK { customFolder = panel.url }
+        // Not modal, so the notch keeps working while the picker is open.
+        panel.begin { [weak self] response in
+            guard response == .OK, let url = panel.url else { return }
+            MainActor.assumeIsolated { self?.customFolder = url }
+        }
     }
 
     func thumbnail(for wallpaper: Wallpaper) -> NSImage? {

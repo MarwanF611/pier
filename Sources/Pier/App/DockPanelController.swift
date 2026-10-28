@@ -72,9 +72,13 @@ final class DockPanelController {
                 await Snapshot.captureLiveWindow(panel, model: model, to: URL(fileURLWithPath: folder))
             }
         }
-        pointerTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 15, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 1.0 / 15, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.trackPointer() }
         }
+        // In the common modes, so it keeps running while a dialog or menu is up. Otherwise the
+        // window stays clickable where the pointer last was and swallows the dialog's clicks.
+        RunLoop.main.add(timer, forMode: .common)
+        pointerTimer = timer
     }
 
     private func layout() {
