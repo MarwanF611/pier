@@ -28,6 +28,12 @@ Glass strip instead.
 - **Hidden in the notch.** Closed, Pier is exactly the size of the notch, so you see nothing.
   Hover the notch, or drag a file onto it, and the panel grows out of it. On displays without a
   notch, the same invisible hover target sits in the middle of the menu bar.
+- **Live beside the notch.** While music plays, the notch grows a little to each side, showing the
+  album art on the left and a moving waveform on the right, like the Dynamic Island. Pin any
+  reading (CPU, GPU, temperature, memory, free disk space, battery) and it stays visible next to
+  the notch even while Pier is closed.
+
+  <img src="docs/screenshots/notch-pinned.png" alt="CPU, memory, temperature, and battery readings pinned on both sides of the notch" width="620">
 - **Or on a screen edge.** A Liquid Glass strip with CPU load, CPU temperature, memory, and free
   disk space that's always in view and opens into the full panel on hover.
 - **System.** CPU, GPU, memory, and CPU die temperature gauges, a 2-minute CPU history, free
@@ -90,7 +96,9 @@ app is signed ad hoc, macOS may ask again after you rebuild.
 | To | Do this |
 | --- | --- |
 | Open the panel | Hover the notch (or the edge strip) |
-| Keep it open | Click the pin |
+| Keep it open | Click the pin in the panel's header |
+| Show a reading beside the notch | Hover a gauge and click its pin, or **…** › Show Beside Notch |
+| Hide the music beside the notch | **…** › Show Beside Notch › turn off Now Playing |
 | Move it | **…** › Position › Hidden in Notch, Left Edge, or Right Edge |
 | Open on click instead of hover | **…** › turn off Open on Hover |
 | Stash a file | Drag it onto the notch or the strip |

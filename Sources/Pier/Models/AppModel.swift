@@ -3,6 +3,35 @@ import Carbon.HIToolbox
 import Observation
 import ServiceManagement
 
+/// A reading that can be pinned beside the notch so it shows even while Pier is closed.
+enum NotchStat: String, CaseIterable, Identifiable {
+    case cpu, gpu, temperature, memory, disk, battery
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .cpu: "CPU"
+        case .gpu: "GPU"
+        case .temperature: "CPU Temperature"
+        case .memory: "Memory"
+        case .disk: "Free Disk Space"
+        case .battery: "Battery"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .cpu: "cpu"
+        case .gpu: "square.stack.3d.up"
+        case .temperature: "thermometer.medium"
+        case .memory: "memorychip"
+        case .disk: "internaldrive"
+        case .battery: "battery.75percent"
+        }
+    }
+}
+
 /// UI state of the dock window itself.
 @MainActor
 @Observable
@@ -48,6 +77,21 @@ final class DockState {
     var screenHasNotch = false
     var isVisible = true {
         didSet { onLayoutChange?() }
+    }
+
+    /// Readings that stay visible beside the notch while Pier is closed, in the order pinned.
+    var notchPins: [NotchStat] = (UserDefaults.standard.stringArray(forKey: "notchPins") ?? []).compactMap(NotchStat.init) {
+        didSet { UserDefaults.standard.set(notchPins.map(\.rawValue), forKey: "notchPins") }
+    }
+    /// Show artwork and a waveform beside the notch while music plays.
+    var notchShowsMusic = UserDefaults.standard.object(forKey: "notchShowsMusic") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(notchShowsMusic, forKey: "notchShowsMusic") }
+    }
+
+    func isPinnedToNotch(_ stat: NotchStat) -> Bool { notchPins.contains(stat) }
+
+    func toggleNotchPin(_ stat: NotchStat) {
+        if let index = notchPins.firstIndex(of: stat) { notchPins.remove(at: index) } else { notchPins.append(stat) }
     }
 
     @ObservationIgnored var onLayoutChange: (() -> Void)?

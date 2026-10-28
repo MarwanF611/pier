@@ -23,13 +23,16 @@ struct NotchSurface: View {
                     .padding(.bottom, 6)
                     .transition(.opacity.combined(with: .scale(scale: 0.92, anchor: .top)))
             } else {
-                Color.clear.frame(width: notch.width + Self.flare * 2, height: notch.height)
+                NotchEars(notch: notch)
+                    .padding(.horizontal, Self.flare)
+                    .transition(.opacity)
             }
         }
         .background {
-            NotchShape(flare: Self.flare, bottomRadius: expanded ? 32 : 10)
+            let hasEars = !NotchEars.isEmpty(model)
+            NotchShape(flare: Self.flare, bottomRadius: expanded ? 32 : hasEars ? 14 : 10)
                 // Without a camera housing there is nothing to blend into, so stay invisible.
-                .fill(dock.screenHasNotch || expanded ? Color.black : Color.black.opacity(0.001))
+                .fill(dock.screenHasNotch || expanded || hasEars ? Color.black : Color.black.opacity(0.001))
                 .overlay {
                     NotchShape(flare: Self.flare, bottomRadius: 32)
                         .stroke(Color.accentColor, lineWidth: 2)
@@ -44,8 +47,124 @@ struct NotchSurface: View {
             ShelfDrop.accept($0, into: model.shelf)
         }
         .onTapGesture { if !expanded { dock.isExpanded = true } }
-        .accessibilityElement(children: expanded ? .contain : .ignore)
+        .accessibilityElement(children: expanded ? .contain : .combine)
         .accessibilityLabel("Pier")
+    }
+}
+
+/// What stays visible beside the notch while Pier is closed: artwork and a waveform while
+/// music plays, plus any pinned readings. Both ears get the same width so the shape stays
+/// centered on the camera housing.
+struct NotchEars: View {
+    @Environment(AppModel.self) private var model
+    var notch: CGSize
+
+    enum Item: Hashable {
+        case artwork, waveform
+        case stat(NotchStat)
+
+        var width: CGFloat {
+            switch self {
+            case .artwork, .waveform: 22
+            case .stat: 54
+            }
+        }
+    }
+
+    private static let outerPadding: CGFloat = 12, innerPadding: CGFloat = 8, spacing: CGFloat = 10
+    static let lantern = Color(red: 1, green: 0.70, blue: 0.22) // the brand mark's lantern
+
+    @MainActor
+    static func items(_ model: AppModel) -> (leading: [Item], trailing: [Item]) {
+        let dock = model.dock
+        let playing = dock.notchShowsMusic && model.music.nowPlaying?.isPlaying == true
+        let stats = dock.notchPins.filter { $0 != .battery || model.monitor.snapshot.batteryLevel != nil }
+        let leadingStats = stats.enumerated().filter { $0.offset.isMultiple(of: 2) }.map { Item.stat($0.element) }
+        let trailingStats = stats.enumerated().filter { !$0.offset.isMultiple(of: 2) }.map { Item.stat($0.element) }
+        return ((playing ? [.artwork] : []) + leadingStats, trailingStats + (playing ? [.waveform] : []))
+    }
+
+    @MainActor
+    static func isEmpty(_ model: AppModel) -> Bool {
+        let (leading, trailing) = items(model)
+        return leading.isEmpty && trailing.isEmpty
+    }
+
+    private static func width(of items: [Item]) -> CGFloat {
+        guard !items.isEmpty else { return 0 }
+        return outerPadding + innerPadding + items.reduce(0) { $0 + $1.width } + spacing * CGFloat(items.count - 1)
+    }
+
+    var body: some View {
+        let (leading, trailing) = Self.items(model)
+        let earWidth = max(Self.width(of: leading), Self.width(of: trailing))
+        HStack(spacing: 0) {
+            HStack(spacing: Self.spacing) { ForEach(leading, id: \.self, content: view(for:)) }
+                .padding(.leading, Self.outerPadding)
+                .frame(width: earWidth, alignment: .leading)
+            Color.clear.frame(width: notch.width)
+            HStack(spacing: Self.spacing) { ForEach(trailing, id: \.self, content: view(for:)) }
+                .padding(.trailing, Self.outerPadding)
+                .frame(width: earWidth, alignment: .trailing)
+        }
+        .frame(height: notch.height)
+        .clipped()
+    }
+
+    @ViewBuilder
+    private func view(for item: Item) -> some View {
+        switch item {
+        case .artwork:
+            Group {
+                if let artwork = model.music.artwork {
+                    Image(nsImage: artwork).resizable().aspectRatio(contentMode: .fill)
+                } else {
+                    Image(systemName: "music.note").font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+                }
+            }
+            .frame(width: 22, height: 22)
+            .background(.white.opacity(0.12))
+            .clipShape(.rect(cornerRadius: 6))
+            .accessibilityLabel(model.music.nowPlaying.map { "Playing \($0.title) by \($0.artist)" } ?? "Playing")
+        case .waveform:
+            Image(systemName: "waveform")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Self.lantern)
+                .symbolEffect(.variableColor.iterative.dimInactiveLayers, options: .repeating)
+                .frame(width: 22)
+                .accessibilityHidden(true)
+        case .stat(let stat):
+            let reading = Self.reading(stat, model.monitor.snapshot)
+            HStack(spacing: 4) {
+                Image(systemName: reading.symbol)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Text(reading.value)
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .foregroundStyle(reading.severity == .normal ? Color.white : reading.severity.tint)
+            }
+            .frame(width: Item.stat(stat).width)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(stat.title)
+            .accessibilityValue(reading.value)
+        }
+    }
+
+    static func reading(_ stat: NotchStat, _ s: SystemSnapshot) -> (symbol: String, value: String, severity: Severity) {
+        switch stat {
+        case .cpu: return (stat.symbol, s.cpuUsage.percent, Severity(s.cpuUsage))
+        case .gpu: return (stat.symbol, s.gpuUsage?.percent ?? "–", Severity(s.gpuUsage ?? 0))
+        case .temperature: return (stat.symbol, s.cpuTemperature.map { "\(Int($0.rounded()))°" } ?? "–", Severity(celsius: s.cpuTemperature))
+        case .memory: return (stat.symbol, s.memoryUsage.percent, Severity(s.memoryUsage, elevated: 0.85, critical: 0.95))
+        case .disk: return (stat.symbol, s.diskFree.compactBytes, Severity(s.diskUsage, elevated: 0.85, critical: 0.95))
+        case .battery:
+            let level = s.batteryLevel ?? 0
+            let symbol = s.isCharging ? "battery.100percent.bolt" : level < 0.2 ? "battery.25percent" : "battery.75percent"
+            return (symbol, level.percent, s.isCharging ? .normal : level < 0.1 ? .critical : level < 0.2 ? .elevated : .normal)
+        }
     }
 }
 

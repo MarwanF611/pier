@@ -122,6 +122,13 @@ struct DockSettingsMenuItems: View {
             ForEach(DockState.Placement.allCases) { Text($0.title).tag($0) }
         }
         Toggle("Open on Hover", isOn: $dock.openOnHover)
+        Menu("Show Beside Notch") {
+            Toggle("Now Playing", isOn: $dock.notchShowsMusic)
+            Divider()
+            ForEach(NotchStat.allCases) { stat in
+                Toggle(stat.title, isOn: Binding(get: { dock.isPinnedToNotch(stat) }, set: { _ in dock.toggleNotchPin(stat) }))
+            }
+        }
         Toggle("Open at Login", isOn: Binding(
             get: { model.launchesAtLogin },
             set: { model.setLaunchesAtLogin($0) }))

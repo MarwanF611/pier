@@ -104,13 +104,10 @@ private struct SystemSection: View {
         let s = model.monitor.snapshot
         SectionCard(title: "System") {
             HStack(spacing: 0) {
-                gauge("CPU", fraction: s.cpuUsage, value: s.cpuUsage.percent, severity: Severity(s.cpuUsage))
-                gauge("GPU", fraction: s.gpuUsage ?? 0, value: s.gpuUsage?.percent ?? "–", severity: Severity(s.gpuUsage ?? 0))
-                gauge("Memory", fraction: s.memoryUsage, value: s.memoryUsage.percent,
-                      severity: Severity(s.memoryUsage, elevated: 0.85, critical: 0.95))
-                gauge("CPU Temp", fraction: temperatureFraction(s.cpuTemperature),
-                      value: s.cpuTemperature.map { "\(Int($0.rounded()))°" } ?? "–",
-                      severity: Severity(celsius: s.cpuTemperature))
+                PinnableGauge(label: "CPU", stat: .cpu, fraction: s.cpuUsage)
+                PinnableGauge(label: "GPU", stat: .gpu, fraction: s.gpuUsage ?? 0)
+                PinnableGauge(label: "Memory", stat: .memory, fraction: s.memoryUsage)
+                PinnableGauge(label: "CPU Temp", stat: .temperature, fraction: temperatureFraction(s.cpuTemperature))
             }
 
             CPUHistoryChart(history: model.monitor.cpuHistory)
@@ -133,20 +130,6 @@ private struct SystemSection: View {
         }
     }
 
-    private func gauge(_ label: String, fraction: Double, value: String, severity: Severity) -> some View {
-        VStack(spacing: 6) {
-            RingGauge(fraction: fraction, value: value, severity: severity, diameter: 54, lineWidth: 5)
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(label)
-        .accessibilityValue(value)
-    }
-
     private func detail(_ symbol: String, _ text: String) -> some View {
         Label {
             Text(text).lineLimit(1).minimumScaleFactor(0.85)
@@ -166,6 +149,53 @@ private struct SystemSection: View {
         case ..<0.88: "battery.75percent"
         default: "battery.100percent"
         }
+    }
+}
+
+/// A gauge in the open panel. Hover it to pin the reading beside the notch, where it stays
+/// visible while Pier is closed.
+private struct PinnableGauge: View {
+    @Environment(AppModel.self) private var model
+    var label: String
+    var stat: NotchStat
+    var fraction: Double
+    @State private var isHovered = false
+
+    var body: some View {
+        let dock = model.dock
+        let reading = NotchEars.reading(stat, model.monitor.snapshot)
+        let pinned = dock.isPinnedToNotch(stat)
+        VStack(spacing: 6) {
+            RingGauge(fraction: fraction, value: reading.value, severity: reading.severity, diameter: 54, lineWidth: 5)
+                .overlay(alignment: .topTrailing) {
+                    if pinned || isHovered {
+                        Button { dock.toggleNotchPin(stat) } label: {
+                            Image(systemName: pinned ? "pin.fill" : "pin")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(pinned ? NotchEars.lantern : .secondary)
+                                .frame(width: 20, height: 20)
+                                .background(.thinMaterial, in: .circle)
+                                .contentShape(.circle)
+                        }
+                        .buttonStyle(.plain)
+                        .offset(x: 8, y: -6)
+                        .help(pinned ? "Remove from Notch" : "Show Beside Notch")
+                        .accessibilityLabel(pinned ? "Remove \(label) from notch" : "Show \(label) beside notch")
+                    }
+                }
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .onHover { isHovered = $0 }
+        .contextMenu {
+            Button(pinned ? "Remove from Notch" : "Show Beside Notch") { dock.toggleNotchPin(stat) }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(label)
+        .accessibilityValue(reading.value + (pinned ? ", shown beside notch" : ""))
     }
 }
 
@@ -204,11 +234,19 @@ private struct StorageSection: View {
     var body: some View {
         let s = model.monitor.snapshot
         let cleaner = model.cleaner
+        let pinned = model.dock.isPinnedToNotch(.disk)
         SectionCard(title: "Storage") {
-            Text("\(s.diskFree.bytes) free of \(s.diskTotal.bytes)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
+            HStack(spacing: 2) {
+                Text("\(s.diskFree.bytes) free of \(s.diskTotal.bytes)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                IconButton(symbol: pinned ? "pin.fill" : "pin",
+                           label: pinned ? "Remove from Notch" : "Show Free Space Beside Notch", size: 10) {
+                    model.dock.toggleNotchPin(.disk)
+                }
+                .foregroundStyle(pinned ? NotchEars.lantern : .secondary)
+            }
         } content: {
             UsageBar(fraction: s.diskUsage, severity: Severity(s.diskUsage, elevated: 0.85, critical: 0.95))
                 .accessibilityLabel("Disk used")

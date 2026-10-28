@@ -83,7 +83,7 @@ struct CollapsedStrip: View {
                   severity: Severity(celsius: s.cpuTemperature),
                   spoken: s.cpuTemperature.map { "\(Int($0.rounded())) degrees Celsius" } ?? "unavailable")
             vital("RAM", fraction: s.memoryUsage, value: s.memoryUsage.percent, severity: Severity(s.memoryUsage, elevated: 0.85, critical: 0.95))
-            vital("Disk", fraction: s.diskUsage, value: freeSpaceShort(s.diskFree),
+            vital("Disk", fraction: s.diskUsage, value: s.diskFree.compactBytes,
                   severity: Severity(s.diskUsage, elevated: 0.85, critical: 0.95),
                   spoken: "\(s.diskFree.bytes) free")
 
@@ -109,11 +109,6 @@ struct CollapsedStrip: View {
         .accessibilityValue(spoken ?? value)
     }
 
-    /// "212G" fits inside a 40 pt ring where "212 GB" does not.
-    private func freeSpaceShort(_ bytes: Int64) -> String {
-        let gigabytes = Double(bytes) / 1_000_000_000
-        return gigabytes >= 1000 ? String(format: "%.1fT", gigabytes / 1000) : "\(Int(gigabytes))G"
-    }
 
     @ViewBuilder private var nowPlaying: some View {
         let playing = model.music.nowPlaying

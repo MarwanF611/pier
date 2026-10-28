@@ -132,6 +132,12 @@ struct IconButton: View {
 
 extension Int64 {
     var bytes: String { formatted(.byteCount(style: .file)) }
+
+    /// "212G": fits inside a 40 pt ring or beside the notch, where "212 GB" does not.
+    var compactBytes: String {
+        let gigabytes = Double(self) / 1_000_000_000
+        return gigabytes >= 1000 ? String(format: "%.1fT", gigabytes / 1000) : "\(Int(gigabytes))G"
+    }
 }
 
 extension UInt64 {

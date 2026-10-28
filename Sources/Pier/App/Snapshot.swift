@@ -63,22 +63,32 @@ enum Snapshot {
         let createImage = unsafeBitCast(symbol, to: CreateImage.self)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
-        let saved = (dock.openOnHover, dock.isPinned, dock.placement)
+        let saved = (dock.openOnHover, dock.isPinned, dock.placement, dock.notchPins)
         dock.openOnHover = false // the pointer may be resting over the dock
-        defer { (dock.openOnHover, dock.isPinned, dock.placement) = saved }
+        defer { (dock.openOnHover, dock.isPinned, dock.placement, dock.notchPins) = saved }
+
+        func capture(_ name: String) async {
+            try? await Task.sleep(for: .seconds(2))
+            guard let image = createImage(.null, windowsToCapture(dock: window), 0)?.takeRetainedValue() else { return }
+            try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?
+                .write(to: folder.appendingPathComponent(name))
+        }
 
         for placement in [DockState.Placement.notch, .right] {
             dock.placement = placement
             for expanded in [false, true] {
                 dock.isExpanded = expanded
                 dock.isPinned = expanded
-                try? await Task.sleep(for: .seconds(2))
-                guard let image = createImage(.null, windowsToCapture(dock: window), 0)?.takeRetainedValue() else { continue }
-                let name = "live-\(placement.rawValue)-\(expanded ? "open" : "closed").png"
-                try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?
-                    .write(to: folder.appendingPathComponent(name))
+                await capture("live-\(placement.rawValue)-\(expanded ? "open" : "closed").png")
             }
         }
+
+        // Readings pinned beside the closed notch.
+        dock.placement = .notch
+        dock.isExpanded = false
+        dock.isPinned = false
+        dock.notchPins = [.cpu, .temperature, .memory, .battery]
+        await capture("live-notch-pinned.png")
     }
 
     /// Window IDs, front to back: Pier, the menu bar, and the desktop picture.
