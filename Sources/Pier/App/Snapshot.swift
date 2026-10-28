@@ -57,7 +57,8 @@ enum Snapshot {
     /// Development aid: with `PIER_SELFSHOT=<folder>` set, captures the live dock window, with its
     /// real Liquid Glass, closed and open in every placement. Only the wallpaper, the menu bar,
     /// and Pier are captured, so other apps' windows never end up in a screenshot.
-    static func captureLiveWindow(_ window: NSWindow, dock: DockState, to folder: URL) async {
+    static func captureLiveWindow(_ window: NSWindow, model: AppModel, to folder: URL) async {
+        let dock = model.dock
         typealias CreateImage = @convention(c) (CGRect, CFArray, UInt32) -> Unmanaged<CGImage>?
         guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "CGWindowListCreateImageFromArray") else { return }
         let createImage = unsafeBitCast(symbol, to: CreateImage.self)
@@ -89,6 +90,10 @@ enum Snapshot {
         dock.isPinned = false
         dock.notchPins = [.cpu, .temperature, .memory, .battery]
         await capture("live-notch-pinned.png")
+
+        // A live activity in their place.
+        model.activities.show(LiveActivity(symbol: "bolt.fill", text: "64%", tint: .green, spoken: "Charging, 64%"), for: 5)
+        await capture("live-notch-activity.png")
     }
 
     /// Window IDs, front to back: Pier, the menu bar, and the desktop picture.

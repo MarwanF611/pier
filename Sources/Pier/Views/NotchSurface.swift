@@ -5,6 +5,7 @@ import SwiftUI
 /// the Dynamic Island grows out of the top of an iPhone.
 struct NotchSurface: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// How far the top corners flare outward to meet the menu bar.
     private static let flare: CGFloat = 10
@@ -48,6 +49,9 @@ struct NotchSurface: View {
             ShelfDrop.accept($0, into: model.shelf)
         }
         .onTapGesture { if !expanded { dock.isExpanded = true } }
+        // A live activity grows out of the notch and back in, like the Dynamic Island.
+        .animation(reduceMotion ? .easeInOut(duration: 0.15) : .spring(response: 0.4, dampingFraction: 0.78),
+                   value: model.activities.current?.id)
         .contextMenu { DockContextMenu() }
         .accessibilityElement(children: expanded ? .contain : .combine)
         .accessibilityLabel("Pier")
@@ -55,8 +59,8 @@ struct NotchSurface: View {
 }
 
 /// What stays visible beside the notch while Pier is closed: artwork and a waveform while
-/// music plays, plus any pinned readings. Both ears get the same width so the shape stays
-/// centered on the camera housing.
+/// music plays, plus any pinned readings, or for a moment a live activity in their place.
+/// Both ears get the same width so the shape stays centered on the camera housing.
 struct NotchEars: View {
     @Environment(AppModel.self) private var model
     var notch: CGSize
@@ -64,11 +68,14 @@ struct NotchEars: View {
     enum Item: Hashable {
         case artwork, waveform
         case stat(NotchStat)
+        case activitySymbol(String), activityText(String)
 
         var width: CGFloat {
             switch self {
-            case .artwork, .waveform: 22
+            case .artwork, .waveform, .activitySymbol: 22
             case .stat: 54
+            // Roughly the width of the rounded 12 pt text, so a long headphone name gets room.
+            case .activityText(let text): min(150, max(40, CGFloat(text.count) * 7.5))
             }
         }
     }
@@ -79,6 +86,9 @@ struct NotchEars: View {
     @MainActor
     static func items(_ model: AppModel) -> (leading: [Item], trailing: [Item]) {
         let dock = model.dock
+        if dock.notchShowsActivities, let activity = model.activities.current {
+            return ([.activitySymbol(activity.symbol)], [.activityText(activity.text)])
+        }
         let playing = dock.notchShowsMusic && model.music.nowPlaying?.isPlaying == true
         let stats = dock.notchPins.filter { $0 != .battery || model.monitor.snapshot.batteryLevel != nil }
         let leadingStats = stats.enumerated().filter { $0.offset.isMultiple(of: 2) }.map { Item.stat($0.element) }
@@ -135,6 +145,21 @@ struct NotchEars: View {
                 .symbolEffect(.variableColor.iterative.dimInactiveLayers, options: .repeating)
                 .frame(width: 22)
                 .accessibilityHidden(true)
+        case .activitySymbol(let symbol):
+            Image(systemName: symbol)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(model.activities.current?.tint ?? .white)
+                .frame(width: 22)
+                .accessibilityHidden(true)
+        case .activityText(let text):
+            Text(text)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .foregroundStyle(model.activities.current?.tint ?? .white)
+                .frame(width: Item.activityText(text).width, alignment: .trailing)
+                .accessibilityLabel(model.activities.current?.spoken ?? text)
         case .stat(let stat):
             let reading = Self.reading(stat, model.monitor.snapshot)
             HStack(spacing: 4) {

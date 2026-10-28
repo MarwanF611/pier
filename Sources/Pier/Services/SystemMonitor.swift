@@ -19,6 +19,8 @@ struct SystemSnapshot: Equatable {
     var uploadRate: Double = 0
     var batteryLevel: Double?           // 0...1
     var isCharging = false
+    /// On the charger, whether or not the battery is still filling.
+    var isPluggedIn = false
     var uptime: TimeInterval = 0
     var thermalState: ProcessInfo.ThermalState = .nominal
 
@@ -34,11 +36,24 @@ final class SystemMonitor {
     /// Recent CPU usage samples, oldest first, for the sparkline.
     private(set) var cpuHistory: [Double] = Array(repeating: 0, count: 60)
 
+    /// Called on the main actor with every new snapshot.
+    @ObservationIgnored var onSample: ((SystemSnapshot) -> Void)?
+
     private let sampler = Sampler()
     private var timer: Timer?
+    private var powerSource: CFRunLoopSource?
 
     func start(interval: TimeInterval = 2) {
         refresh()
+        // Plugging in the charger shows up right away instead of at the next tick.
+        if powerSource == nil, let source = IOPSNotificationCreateRunLoopSource({ context in
+            guard let context else { return }
+            let monitor = Unmanaged<SystemMonitor>.fromOpaque(context).takeUnretainedValue()
+            MainActor.assumeIsolated { monitor.refresh() }
+        }, Unmanaged.passUnretained(self).toOpaque())?.takeRetainedValue() {
+            CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode)
+            powerSource = source
+        }
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.refresh() }
@@ -55,6 +70,7 @@ final class SystemMonitor {
                 self.snapshot = snapshot
                 self.cpuHistory.removeFirst()
                 self.cpuHistory.append(snapshot.cpuUsage)
+                self.onSample?(snapshot)
             }
         }
     }
@@ -79,7 +95,7 @@ private final class Sampler: @unchecked Sendable {
         s.swapUsed = swapUsed()
         (s.diskFree, s.diskTotal) = diskSpace()
         (s.downloadRate, s.uploadRate) = networkRates()
-        (s.batteryLevel, s.isCharging) = battery()
+        (s.batteryLevel, s.isCharging, s.isPluggedIn) = battery()
         s.uptime = ProcessInfo.processInfo.systemUptime
         s.thermalState = ProcessInfo.processInfo.thermalState
         return s
@@ -189,17 +205,18 @@ private final class Sampler: @unchecked Sendable {
         return (down / elapsed, up / elapsed)
     }
 
-    private func battery() -> (level: Double?, charging: Bool) {
+    private func battery() -> (level: Double?, charging: Bool, pluggedIn: Bool) {
         guard let info = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
-              let sources = IOPSCopyPowerSourcesList(info)?.takeRetainedValue() as? [CFTypeRef] else { return (nil, false) }
+              let sources = IOPSCopyPowerSourcesList(info)?.takeRetainedValue() as? [CFTypeRef] else { return (nil, false, false) }
         for source in sources {
             guard let description = IOPSGetPowerSourceDescription(info, source)?.takeUnretainedValue() as? [String: Any],
                   description[kIOPSTypeKey] as? String == kIOPSInternalBatteryType,
                   let current = description[kIOPSCurrentCapacityKey] as? Int,
                   let maximum = description[kIOPSMaxCapacityKey] as? Int, maximum > 0 else { continue }
             let charging = description[kIOPSIsChargingKey] as? Bool ?? false
-            return (Double(current) / Double(maximum), charging)
+            let pluggedIn = description[kIOPSPowerSourceStateKey] as? String == kIOPSACPowerValue
+            return (Double(current) / Double(maximum), charging, pluggedIn)
         }
-        return (nil, false)
+        return (nil, false, false)
     }
 }

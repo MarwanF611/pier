@@ -82,6 +82,10 @@ final class DockState {
     var notchPins: [NotchStat] = (UserDefaults.standard.stringArray(forKey: "notchPins") ?? []).compactMap(NotchStat.init) {
         didSet { UserDefaults.standard.set(notchPins.map(\.rawValue), forKey: "notchPins") }
     }
+    /// Show the charger, headphones, and critical readings beside the notch for a moment.
+    var notchShowsActivities = UserDefaults.standard.object(forKey: "notchShowsActivities") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(notchShowsActivities, forKey: "notchShowsActivities") }
+    }
     /// Show artwork and a waveform beside the notch while music plays.
     var notchShowsMusic = UserDefaults.standard.object(forKey: "notchShowsMusic") as? Bool ?? true {
         didSet { UserDefaults.standard.set(notchShowsMusic, forKey: "notchShowsMusic") }
@@ -111,6 +115,7 @@ final class AppModel {
     let wallpapers = WallpaperManager()
     let cleaner = StorageCleaner()
     let shelf = ShelfStore()
+    let activities = LiveActivities()
 
     private(set) var launchesAtLogin = SMAppService.mainApp.status == .enabled
     @ObservationIgnored private var screenshotHotKey: HotKey?
@@ -119,8 +124,10 @@ final class AppModel {
     static let screenshotShortcut = "⌘⇧F5"
 
     func start() {
+        monitor.onSample = { [weak self] in self?.activities.observe($0) }
         monitor.start()
         music.start()
+        activities.start()
         screenshotHotKey = HotKey(keyCode: kVK_F5, modifiers: cmdKey | shiftKey) { [weak self] in
             MainActor.assumeIsolated { self?.captureScreenshot() }
         }

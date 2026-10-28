@@ -16,6 +16,7 @@ let package = Package(
             dependencies: ["CSensors"],
             linkerSettings: [
                 .linkedFramework("Carbon"),
+                .linkedFramework("CoreAudio"),
                 .linkedFramework("IOKit"),
                 .linkedFramework("QuickLookThumbnailing"),
                 .linkedFramework("ServiceManagement"),

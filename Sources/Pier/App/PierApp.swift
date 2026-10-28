@@ -142,6 +142,7 @@ struct DockSettingsMenuItems: View {
         Toggle("Open on Hover", isOn: $dock.openOnHover)
         Menu("Show Beside Notch") {
             Toggle("Now Playing", isOn: $dock.notchShowsMusic)
+            Toggle("Live Activities", isOn: $dock.notchShowsActivities)
             Divider()
             ForEach(NotchStat.allCases) { stat in
                 Toggle(stat.title, isOn: Binding(get: { dock.isPinnedToNotch(stat) }, set: { _ in dock.toggleNotchPin(stat) }))

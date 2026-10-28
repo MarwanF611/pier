@@ -60,7 +60,7 @@ final class DockPanelController {
         if let folder = ProcessInfo.processInfo.environment["PIER_SELFSHOT"] {
             Task { [panel] in
                 try? await Task.sleep(for: .seconds(3))
-                await Snapshot.captureLiveWindow(panel, dock: model.dock, to: URL(fileURLWithPath: folder))
+                await Snapshot.captureLiveWindow(panel, model: model, to: URL(fileURLWithPath: folder))
             }
         }
         pointerTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 15, repeats: true) { [weak self] _ in
