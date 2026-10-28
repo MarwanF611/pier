@@ -102,9 +102,9 @@ private struct PlayerView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .frame(width: 72, height: 72)
+        .frame(width: 60, height: 60)
         .background(.primary.opacity(0.08))
-        .clipShape(.rect(cornerRadius: 12))
+        .clipShape(.rect(cornerRadius: 11))
         .shadow(color: .black.opacity(0.18), radius: 6, y: 3)
         .accessibilityHidden(true)
     }

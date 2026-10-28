@@ -111,7 +111,11 @@ private struct MenuBarContent: View {
         Divider()
         Button("Take Screenshot to Shelf") { model.captureScreenshot() }
             .keyboardShortcut(KeyEquivalent("\u{F708}") /* NSF5FunctionKey */, modifiers: [.command, .shift])
+        Button("Copy Text from Screen") { model.captureText() }
+            .keyboardShortcut(KeyEquivalent("\u{F709}") /* NSF6FunctionKey */, modifiers: [.command, .shift])
         Button("Shuffle Wallpaper") { model.wallpapers.shuffle() }
+        Divider()
+        Menu(model.keepAwake.isOn ? "Keep Awake: On" : "Keep Awake") { KeepAwakeMenuItems() }
         Divider()
         DockSettingsMenuItems()
         Divider()
@@ -123,7 +127,11 @@ private struct MenuBarContent: View {
 /// The dock's own menu (right-click, or More in the panel), so settings and Quit never
 /// depend on the menu bar item, which the open notch panel covers.
 struct DockContextMenu: View {
+    @Environment(AppModel.self) private var model
+
     var body: some View {
+        Menu(model.keepAwake.isOn ? "Keep Awake: On" : "Keep Awake") { KeepAwakeMenuItems() }
+        Divider()
         DockSettingsMenuItems()
         Divider()
         Button("Quit Pier") { NSApp.terminate(nil) }

@@ -84,7 +84,7 @@ struct SectionCard<Content: View, Accessory: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
@@ -95,8 +95,8 @@ struct SectionCard<Content: View, Accessory: View>: View {
             }
             content
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(11)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(.primary.opacity(0.055), in: .rect(cornerRadius: 18))
     }
 }
@@ -151,6 +151,18 @@ extension Double {
     var rate: String {
         if self < 1_000_000 { return "\(Int((self / 1000).rounded())) KB/s" }
         return (self / 1_000_000).formatted(.number.precision(.fractionLength(1))) + " MB/s"
+    }
+}
+
+extension Date {
+    /// "now", "40s", "12m", "3h", "2d": how long ago, short enough for a list row.
+    var compactAge: String {
+        let seconds = max(0, Int(Date.now.timeIntervalSince(self)))
+        if seconds < 5 { return "now" }
+        if seconds < 60 { return "\(seconds)s" }
+        if seconds < 3600 { return "\(seconds / 60)m" }
+        if seconds < 86_400 { return "\(seconds / 3600)h" }
+        return "\(seconds / 86_400)d"
     }
 }
 

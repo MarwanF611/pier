@@ -3,7 +3,7 @@ import SwiftUI
 struct ShelfSection: View {
     @Environment(AppModel.self) private var model
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
+    private let columns = [GridItem(.adaptive(minimum: 76), spacing: 8)]
 
     var body: some View {
         let shelf = model.shelf

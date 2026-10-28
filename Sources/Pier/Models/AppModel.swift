@@ -32,6 +32,33 @@ enum NotchStat: String, CaseIterable, Identifiable {
     }
 }
 
+/// What the open panel shows. Home has the everyday sections; the rest each get the room.
+enum PanelTab: String, CaseIterable, Identifiable {
+    case home, clipboard, shelf, wallpaper, ask
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .home: "Home"
+        case .clipboard: "Clipboard"
+        case .shelf: "Shelf"
+        case .wallpaper: "Wallpaper"
+        case .ask: "Ask Pier"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .home: "house"
+        case .clipboard: "list.clipboard"
+        case .shelf: "tray"
+        case .wallpaper: "photo.on.rectangle"
+        case .ask: "sparkles"
+        }
+    }
+}
+
 /// UI state of the dock window itself.
 @MainActor
 @Observable
@@ -54,7 +81,11 @@ final class DockState {
     var isExpanded = false
     /// Frame of the visible glass surface in the dock window's coordinates (top-left origin).
     var surfaceRect: CGRect = .zero
-    var isDropTargeted = false
+    var tab = PanelTab.home
+    /// A file dragged over Pier switches to the shelf, where it will land.
+    var isDropTargeted = false {
+        didSet { if isDropTargeted { tab = .shelf } }
+    }
     /// While set, the panel stays open even without the pointer over it.
     var peekUntil: Date?
 
@@ -116,31 +147,68 @@ final class AppModel {
     let cleaner = StorageCleaner()
     let shelf = ShelfStore()
     let activities = LiveActivities()
+    let clipboard = ClipboardHistory()
+    let keepAwake = KeepAwake()
     @ObservationIgnored private(set) lazy var assistant = Assistant(model: self)
 
     private(set) var launchesAtLogin = SMAppService.mainApp.status == .enabled
     @ObservationIgnored private var screenshotHotKey: HotKey?
+    @ObservationIgnored private var textCaptureHotKey: HotKey?
     @ObservationIgnored private var isCapturing = false
 
     static let screenshotShortcut = "⌘⇧F5"
+    static let textCaptureShortcut = "⌘⇧F6"
 
     func start() {
         monitor.onSample = { [weak self] in self?.activities.observe($0) }
         monitor.start()
         music.start()
         activities.start()
+        clipboard.start()
         screenshotHotKey = HotKey(keyCode: kVK_F5, modifiers: cmdKey | shiftKey) { [weak self] in
             MainActor.assumeIsolated { self?.captureScreenshot() }
+        }
+        textCaptureHotKey = HotKey(keyCode: kVK_F6, modifiers: cmdKey | shiftKey) { [weak self] in
+            MainActor.assumeIsolated { self?.captureText() }
         }
     }
 
     /// Lets the user drag out a region (or press Space for a window) and stashes the result on the shelf.
     func captureScreenshot() {
+        let url = shelf.newFileURL(base: "Screenshot", extension: "png")
+        captureRegion(to: url) {
+            self.shelf.add(fileURL: url)
+            self.dock.tab = .shelf
+            self.dock.peek()
+        }
+    }
+
+    /// Lets the user drag out a region and copies the text in it, read on this Mac.
+    func captureText() {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Pier Text \(UUID().uuidString).png")
+        captureRegion(to: url) {
+            Task {
+                let text = await TextRecognizer.text(in: url)
+                try? FileManager.default.removeItem(at: url)
+                guard !text.isEmpty else {
+                    self.activities.show(LiveActivity(symbol: "text.viewfinder", text: "No text", tint: .orange,
+                                                      spoken: "No text found"))
+                    return
+                }
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+                self.activities.show(LiveActivity(symbol: "text.viewfinder", text: "Copied", tint: .white,
+                                                  spoken: "Copied text: \(text)"))
+            }
+        }
+    }
+
+    /// Runs the system's interactive capture; `done` runs only if something was captured.
+    private func captureRegion(to url: URL, done: @escaping @MainActor () -> Void) {
         guard !isCapturing else { return }
         isCapturing = true
         if !dock.isPinned { dock.isExpanded = false }
 
-        let url = shelf.newFileURL(base: "Screenshot", extension: "png")
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
         process.arguments = ["-i", "-x", url.path]
@@ -149,8 +217,7 @@ final class AppModel {
                 self.isCapturing = false
                 // Pressing Escape cancels the capture and writes nothing.
                 guard FileManager.default.fileExists(atPath: url.path) else { return }
-                self.shelf.add(fileURL: url)
-                self.dock.peek()
+                done()
             }
         }
         do { try process.run() } catch { isCapturing = false }

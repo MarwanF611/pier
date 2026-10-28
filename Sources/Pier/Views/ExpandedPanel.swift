@@ -9,41 +9,17 @@ struct ExpandedPanel: View {
         case wide
     }
 
+    @Environment(AppModel.self) private var model
     var maxHeight: CGFloat
     var layout: Layout = .column
 
     static let columnWidth: CGFloat = 348
+    static let wideWidth: CGFloat = columnWidth * 2 + 10
 
     var body: some View {
-        let content = Group {
-            switch layout {
-            case .column:
-                VStack(spacing: 10) {
-                    PanelHeader()
-                    AssistantSection()
-                    SystemSection()
-                    StorageSection()
-                    MusicSection()
-                    ShelfSection()
-                    WallpaperSection()
-                }
-            case .wide:
-                HStack(alignment: .top, spacing: 10) {
-                    VStack(spacing: 10) {
-                        PanelHeader()
-                        AssistantSection()
-                        SystemSection()
-                        StorageSection()
-                    }
-                    .frame(width: Self.columnWidth)
-                    VStack(spacing: 10) {
-                        MusicSection()
-                        ShelfSection()
-                        WallpaperSection()
-                    }
-                    .frame(width: Self.columnWidth)
-                }
-            }
+        let content = VStack(spacing: 10) {
+            PanelHeader(layout: layout)
+            tab(model.dock.tab)
         }
         .padding(12)
 
@@ -56,23 +32,85 @@ struct ExpandedPanel: View {
         .frame(maxHeight: maxHeight)
         .fixedSize(horizontal: false, vertical: true)
     }
+
+    @ViewBuilder
+    private func tab(_ tab: PanelTab) -> some View {
+        switch (tab, layout) {
+        case (.home, .column):
+            VStack(spacing: 10) {
+                MusicSection()
+                SystemSection()
+                StorageSection()
+            }
+        case (.home, .wide):
+            HStack(alignment: .top, spacing: 10) {
+                VStack(spacing: 10) {
+                    MusicSection()
+                    StorageSection()
+                }
+                .frame(width: Self.columnWidth)
+                // As tall as the column beside it; the CPU chart takes up the difference.
+                SystemSection()
+                    .frame(width: Self.columnWidth)
+                    .frame(maxHeight: .infinity)
+            }
+        case (.clipboard, _): ClipboardSection().frame(width: width)
+        case (.shelf, _): ShelfSection().frame(width: width)
+        case (.wallpaper, _): WallpaperSection().frame(width: width)
+        case (.ask, _): AssistantSection().frame(width: width)
+        }
+    }
+
+    private var width: CGFloat? { layout == .wide ? Self.wideWidth : nil }
 }
 
+/// The Mac's name, the tabs, and the panel's own controls, in one row when there's room.
 private struct PanelHeader: View {
     @Environment(AppModel.self) private var model
+    var layout: ExpandedPanel.Layout
 
     var body: some View {
-        @Bindable var dock = model.dock
-        HStack(spacing: 4) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(Host.current().localizedName ?? "This Mac")
-                    .font(.headline)
-                    .lineLimit(1)
-                Text("Up \(model.monitor.snapshot.uptime.compactDuration)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        Group {
+            if layout == .wide {
+                HStack(spacing: 4) {
+                    identity
+                    Spacer(minLength: 8)
+                    PanelTabBar()
+                    Spacer(minLength: 8)
+                    controls
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 4) {
+                        identity
+                        Spacer(minLength: 8)
+                        controls
+                    }
+                    PanelTabBar()
+                }
             }
-            Spacer()
+        }
+        .padding(.horizontal, 6)
+        .padding(.top, 2)
+    }
+
+    private var identity: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(Host.current().localizedName ?? "This Mac")
+                .font(.headline)
+                .lineLimit(1)
+            Text("Up \(model.monitor.snapshot.uptime.compactDuration)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        // Equal width on both sides keeps the tabs centered under the notch.
+        .frame(width: layout == .wide ? 200 : nil, alignment: .leading)
+    }
+
+    private var controls: some View {
+        @Bindable var dock = model.dock
+        return HStack(spacing: 4) {
+            KeepAwakeButton()
             IconButton(symbol: dock.isPinned ? "pin.fill" : "pin",
                        label: dock.isPinned ? "Let Pier Close" : "Keep Pier Open") {
                 dock.isPinned.toggle()
@@ -92,8 +130,95 @@ private struct PanelHeader: View {
             .help("More")
             .accessibilityLabel("More")
         }
-        .padding(.horizontal, 6)
-        .padding(.top, 4)
+        .frame(width: layout == .wide ? 200 : nil, alignment: .trailing)
+    }
+}
+
+/// Icons for each tab; the selected one also shows its name.
+private struct PanelTabBar: View {
+    @Environment(AppModel.self) private var model
+    @Namespace private var selection
+
+    var body: some View {
+        let dock = model.dock
+        HStack(spacing: 2) {
+            ForEach(PanelTab.allCases) { tab in
+                let selected = dock.tab == tab
+                Button { dock.tab = tab } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: tab.symbol)
+                            .font(.system(size: 12, weight: .semibold))
+                        if selected {
+                            Text(tab.title)
+                                .font(.caption.weight(.semibold))
+                                .lineLimit(1)
+                                .fixedSize()
+                        }
+                    }
+                    .foregroundStyle(selected ? .primary : .secondary)
+                    .padding(.horizontal, selected ? 10 : 8)
+                    .frame(height: 26)
+                    .background {
+                        if selected {
+                            Capsule().fill(.primary.opacity(0.14)).matchedGeometryEffect(id: "tab", in: selection)
+                        }
+                    }
+                    .contentShape(.capsule)
+                }
+                .buttonStyle(.plain)
+                .help(tab.title)
+                .accessibilityLabel(tab.title)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .padding(2)
+        .background(.primary.opacity(0.06), in: .capsule)
+        .animation(.snappy(duration: 0.25), value: dock.tab)
+    }
+}
+
+/// A cup that keeps the Mac from sleeping, with a choice of how long.
+struct KeepAwakeButton: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        let keepAwake = model.keepAwake
+        Menu {
+            KeepAwakeMenuItems()
+        } label: {
+            Image(systemName: keepAwake.isOn ? "cup.and.heat.waves.fill" : "cup.and.heat.waves")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(keepAwake.isOn ? NotchEars.lantern : .primary)
+                .contentTransition(.symbolEffect(.replace))
+                .frame(width: 28, height: 28)
+                .contentShape(.circle)
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help(keepAwake.isOn ? keepAwake.summary : "Keep Awake")
+        .accessibilityLabel("Keep Awake")
+        .accessibilityValue(keepAwake.isOn ? keepAwake.summary : "Off")
+    }
+}
+
+/// Keep Awake's choices, shared by the panel's cup and Pier's menus.
+struct KeepAwakeMenuItems: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        let keepAwake = model.keepAwake
+        if keepAwake.isOn {
+            Text(keepAwake.summary)
+            Button("Turn Off Keep Awake") { keepAwake.turnOff() }
+            Divider()
+        }
+        Section(keepAwake.isOn ? "Keep Awake Instead" : "Keep Mac Awake") {
+            ForEach(KeepAwake.durations, id: \.title) { duration in
+                Button(duration.title) { keepAwake.turnOn(for: duration.seconds) }
+            }
+        }
     }
 }
 
@@ -165,8 +290,8 @@ private struct PinnableGauge: View {
         let dock = model.dock
         let reading = NotchEars.reading(stat, model.monitor.snapshot)
         let pinned = dock.isPinnedToNotch(stat)
-        VStack(spacing: 6) {
-            RingGauge(fraction: fraction, value: reading.value, severity: reading.severity, diameter: 54, lineWidth: 5)
+        VStack(spacing: 4) {
+            RingGauge(fraction: fraction, value: reading.value, severity: reading.severity, diameter: 46, lineWidth: 4.5)
                 .overlay(alignment: .topTrailing) {
                     if pinned || isHovered {
                         Button { dock.toggleNotchPin(stat) } label: {
@@ -216,7 +341,7 @@ private struct CPUHistoryChart: View {
         .chartYScale(domain: 0...1)
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
-        .frame(height: 38)
+        .frame(minHeight: 30, idealHeight: 30, maxHeight: .infinity)
         .overlay(alignment: .topLeading) {
             Text("CPU, last 2 minutes")
                 .font(.caption2)

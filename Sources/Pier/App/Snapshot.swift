@@ -64,9 +64,10 @@ enum Snapshot {
         let createImage = unsafeBitCast(symbol, to: CreateImage.self)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
-        let saved = (dock.openOnHover, dock.isPinned, dock.placement, dock.notchPins)
+        let saved = (dock.openOnHover, dock.isPinned, dock.placement, dock.notchPins, dock.tab)
         dock.openOnHover = false // the pointer may be resting over the dock
-        defer { (dock.openOnHover, dock.isPinned, dock.placement, dock.notchPins) = saved }
+        defer { (dock.openOnHover, dock.isPinned, dock.placement, dock.notchPins, dock.tab) = saved }
+        dock.tab = .home
 
         func capture(_ name: String) async {
             try? await Task.sleep(for: .seconds(2))
@@ -83,6 +84,16 @@ enum Snapshot {
                 await capture("live-\(placement.rawValue)-\(expanded ? "open" : "closed").png")
             }
         }
+
+        // Every other tab of the open notch panel.
+        dock.placement = .notch
+        dock.isPinned = true
+        dock.isExpanded = true
+        for tab in PanelTab.allCases where tab != .home {
+            dock.tab = tab
+            await capture("live-notch-open-\(tab.rawValue).png")
+        }
+        dock.tab = .home
 
         // Readings pinned beside the closed notch.
         dock.placement = .notch

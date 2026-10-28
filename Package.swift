@@ -21,6 +21,7 @@ let package = Package(
                 .linkedFramework("IOKit"),
                 .linkedFramework("QuickLookThumbnailing"),
                 .linkedFramework("ServiceManagement"),
+                .linkedFramework("Vision"),
             ]
         ),
     ],

@@ -66,13 +66,13 @@ struct NotchEars: View {
     var notch: CGSize
 
     enum Item: Hashable {
-        case artwork, waveform
+        case artwork, waveform, keepAwake
         case stat(NotchStat)
         case activitySymbol(String), activityText(String)
 
         var width: CGFloat {
             switch self {
-            case .artwork, .waveform, .activitySymbol: 22
+            case .artwork, .waveform, .keepAwake, .activitySymbol: 22
             case .stat: 54
             // Roughly the width of the rounded 12 pt text, so a long headphone name gets room.
             case .activityText(let text): min(150, max(40, CGFloat(text.count) * 7.5))
@@ -93,7 +93,9 @@ struct NotchEars: View {
         let stats = dock.notchPins.filter { $0 != .battery || model.monitor.snapshot.batteryLevel != nil }
         let leadingStats = stats.enumerated().filter { $0.offset.isMultiple(of: 2) }.map { Item.stat($0.element) }
         let trailingStats = stats.enumerated().filter { !$0.offset.isMultiple(of: 2) }.map { Item.stat($0.element) }
-        return ((playing ? [.artwork] : []) + leadingStats, trailingStats + (playing ? [.waveform] : []))
+        // Keep Awake stays in sight while it's on, so it isn't left on by accident.
+        let awake = model.keepAwake.isOn
+        return ((playing ? [.artwork] : []) + leadingStats, trailingStats + (playing ? [.waveform] : []) + (awake ? [.keepAwake] : []))
     }
 
     @MainActor
@@ -145,6 +147,13 @@ struct NotchEars: View {
                 .symbolEffect(.variableColor.iterative.dimInactiveLayers, options: .repeating)
                 .frame(width: 22)
                 .accessibilityHidden(true)
+        case .keepAwake:
+            Image(systemName: "cup.and.heat.waves.fill")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Self.lantern)
+                .frame(width: 22)
+                .help(model.keepAwake.summary)
+                .accessibilityLabel(model.keepAwake.summary)
         case .activitySymbol(let symbol):
             Image(systemName: symbol)
                 .font(.system(size: 14, weight: .semibold))
