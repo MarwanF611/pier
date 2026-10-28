@@ -55,6 +55,7 @@ struct ExpandedPanel: View {
                     .frame(maxHeight: .infinity)
             }
         case (.clipboard, _): ClipboardSection().frame(width: width)
+        case (.claude, _): ClaudeSection().frame(width: width)
         case (.shelf, _): ShelfSection().frame(width: width)
         case (.wallpaper, _): WallpaperSection().frame(width: width)
         case (.ask, _): AssistantSection().frame(width: width)

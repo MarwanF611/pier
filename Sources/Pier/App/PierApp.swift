@@ -2,6 +2,17 @@ import CSensors
 import SwiftUI
 
 @main
+enum PierMain {
+    static func main() {
+        // Claude Code runs this binary as a hook: pass the event on and quit before any UI starts.
+        if CommandLine.arguments.contains(ClaudeHook.argument) {
+            ClaudeHook.forwardFromStandardInput()
+            exit(0)
+        }
+        PierApp.main()
+    }
+}
+
 struct PierApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
 

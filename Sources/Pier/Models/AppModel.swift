@@ -34,7 +34,7 @@ enum NotchStat: String, CaseIterable, Identifiable {
 
 /// What the open panel shows. Home has the everyday sections; the rest each get the room.
 enum PanelTab: String, CaseIterable, Identifiable {
-    case home, clipboard, shelf, wallpaper, ask
+    case home, clipboard, claude, shelf, wallpaper, ask
 
     var id: String { rawValue }
 
@@ -42,6 +42,7 @@ enum PanelTab: String, CaseIterable, Identifiable {
         switch self {
         case .home: "Home"
         case .clipboard: "Clipboard"
+        case .claude: "Claude Code"
         case .shelf: "Shelf"
         case .wallpaper: "Wallpaper"
         case .ask: "Ask Pier"
@@ -52,6 +53,7 @@ enum PanelTab: String, CaseIterable, Identifiable {
         switch self {
         case .home: "house"
         case .clipboard: "list.clipboard"
+        case .claude: "terminal"
         case .shelf: "tray"
         case .wallpaper: "photo.on.rectangle"
         case .ask: "sparkles"
@@ -149,6 +151,7 @@ final class AppModel {
     let activities = LiveActivities()
     let clipboard = ClipboardHistory()
     let keepAwake = KeepAwake()
+    @ObservationIgnored private(set) lazy var claude = ClaudeSessions(activities: activities)
     @ObservationIgnored private(set) lazy var assistant = Assistant(model: self)
 
     private(set) var launchesAtLogin = SMAppService.mainApp.status == .enabled
@@ -165,6 +168,7 @@ final class AppModel {
         music.start()
         activities.start()
         clipboard.start()
+        claude.start()
         screenshotHotKey = HotKey(keyCode: kVK_F5, modifiers: cmdKey | shiftKey) { [weak self] in
             MainActor.assumeIsolated { self?.captureScreenshot() }
         }

@@ -66,7 +66,7 @@ struct NotchEars: View {
     var notch: CGSize
 
     enum Item: Hashable {
-        case artwork, waveform, keepAwake
+        case artwork, waveform, keepAwake, claude
         case stat(NotchStat)
         case activitySymbol(String), activityText(String)
 
@@ -74,6 +74,7 @@ struct NotchEars: View {
             switch self {
             case .artwork, .waveform, .keepAwake, .activitySymbol: 22
             case .stat: 54
+            case .claude: 82
             // Roughly the width of the rounded 12 pt text, so a long headphone name gets room.
             case .activityText(let text): min(150, max(40, CGFloat(text.count) * 7.5))
             }
@@ -95,7 +96,8 @@ struct NotchEars: View {
         let trailingStats = stats.enumerated().filter { !$0.offset.isMultiple(of: 2) }.map { Item.stat($0.element) }
         // Keep Awake stays in sight while it's on, so it isn't left on by accident.
         let awake = model.keepAwake.isOn
-        return ((playing ? [.artwork] : []) + leadingStats, trailingStats + (playing ? [.waveform] : []) + (awake ? [.keepAwake] : []))
+        let claude = model.claude.featured != nil
+        return ((playing ? [.artwork] : []) + (claude ? [.claude] : []) + leadingStats, trailingStats + (playing ? [.waveform] : []) + (awake ? [.keepAwake] : []))
     }
 
     @MainActor
@@ -147,6 +149,10 @@ struct NotchEars: View {
                 .symbolEffect(.variableColor.iterative.dimInactiveLayers, options: .repeating)
                 .frame(width: 22)
                 .accessibilityHidden(true)
+        case .claude:
+            if let session = model.claude.featured {
+                ClaudeEar(session: session).frame(width: Item.claude.width, alignment: .leading)
+            }
         case .keepAwake:
             Image(systemName: "cup.and.heat.waves.fill")
                 .font(.system(size: 13, weight: .semibold))

@@ -95,6 +95,15 @@ enum Snapshot {
         }
         dock.tab = .home
 
+        // Claude Code at work beside the closed notch.
+        let claude = ["session_id": "selfshot", "cwd": "/Users/pier/Projects/pier"]
+        model.claude.handle(claude.merging(["event": "UserPromptSubmit"]) { $1 })
+        dock.isExpanded = false
+        dock.isPinned = false
+        dock.notchPins = []
+        await capture("live-notch-claude.png")
+        model.claude.handle(claude.merging(["event": "SessionEnd"]) { $1 })
+
         // Readings pinned beside the closed notch.
         dock.placement = .notch
         dock.isExpanded = false
