@@ -12,9 +12,9 @@ private final class DockHostingView<Content: View>: NSHostingView<Content> {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
-/// Owns the dock window: places it on the screen edge and opens or closes it as the pointer
-/// comes and goes. The window spans the full edge but ignores the mouse outside the visible
-/// glass, so the rest of that strip of screen stays clickable.
+/// Owns the dock window: hangs it from the notch and opens or closes it as the pointer comes
+/// and goes. The window is as big as the open panel but ignores the mouse outside the visible
+/// surface, so the menu bar and windows beneath it stay clickable.
 @MainActor
 final class DockPanelController {
     private let model: AppModel
@@ -23,7 +23,6 @@ final class DockPanelController {
     private var hoverStartedAt: Date?
     private var leftAt: Date?
 
-    private static let windowWidth: CGFloat = 420
     private static let notchWindowWidth: CGFloat = 860
     private static let notchWindowHeight: CGFloat = 640
     private static let openDelay: TimeInterval = 0.22
@@ -85,33 +84,23 @@ final class DockPanelController {
         let dock = model.dock
         guard dock.isVisible else { panel.orderOut(nil); return }
 
-        switch dock.placement {
-        case .notch:
-            // Prefer the built-in display, which is the one with the notch.
-            guard let screen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) ?? NSScreen.screens.first else { return }
-            if screen.safeAreaInsets.top > 0, let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
-                dock.notchSize = CGSize(width: screen.frame.width - left.width - right.width, height: screen.safeAreaInsets.top)
-            } else {
-                // No notch: an invisible hover target in the middle of the menu bar.
-                dock.notchSize = CGSize(width: 200, height: max(24, screen.frame.maxY - screen.visibleFrame.maxY))
-            }
-            let size = CGSize(width: Self.notchWindowWidth, height: min(Self.notchWindowHeight, screen.frame.height - 40))
-            // Above the menu bar, so the panel can grow out of the notch.
-            panel.level = .statusBar
-            panel.setFrame(NSRect(x: screen.frame.midX - size.width / 2, y: screen.frame.maxY - size.height,
-                                  width: size.width, height: size.height), display: true)
-
-        case .left, .right:
-            guard let screen = NSScreen.screens.first else { return }
-            let visible = screen.visibleFrame
-            let x = dock.placement == .right ? visible.maxX - Self.windowWidth : visible.minX
-            panel.level = .floating
-            panel.setFrame(NSRect(x: x, y: visible.minY, width: Self.windowWidth, height: visible.height), display: true)
+        // Prefer the built-in display, which is the one with the notch.
+        guard let screen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) ?? NSScreen.screens.first else { return }
+        if screen.safeAreaInsets.top > 0, let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
+            dock.notchSize = CGSize(width: screen.frame.width - left.width - right.width, height: screen.safeAreaInsets.top)
+        } else {
+            // No notch: an invisible hover target in the middle of the menu bar.
+            dock.notchSize = CGSize(width: 200, height: max(24, screen.frame.maxY - screen.visibleFrame.maxY))
         }
+        let size = CGSize(width: Self.notchWindowWidth, height: min(Self.notchWindowHeight, screen.frame.height - 40))
+        // Above the menu bar, so the panel can grow out of the notch.
+        panel.level = .statusBar
+        panel.setFrame(NSRect(x: screen.frame.midX - size.width / 2, y: screen.frame.maxY - size.height,
+                              width: size.width, height: size.height), display: true)
         panel.orderFrontRegardless()
     }
 
-    /// The visible glass surface in screen coordinates.
+    /// The visible surface in screen coordinates.
     private var surfaceOnScreen: NSRect {
         let rect = model.dock.surfaceRect
         let frame = panel.frame

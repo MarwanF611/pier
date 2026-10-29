@@ -10,17 +10,9 @@
 Pier is a small native macOS app that lives in the MacBook notch. Nothing shows until you
 move the pointer to the notch; then a panel drops out of it with live system stats, storage
 cleanup, music controls, a shelf for stashing files and screenshots, and one-click wallpapers.
-Prefer it always visible? Pin it to the left or right edge of the screen as a slim Liquid
-Glass strip instead.
 
 <p align="center">
-  <img src="docs/screenshots/notch-open.png" alt="Pier open below the MacBook notch, showing system gauges, storage, now playing, the shelf, and wallpapers" width="820">
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/edge-strip.png" alt="Pier as a slim glass strip on the right screen edge with CPU, temperature, RAM, and disk gauges" height="420">
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/edge-open.png" alt="Pier's panel opened from the right screen edge" height="420">
+  <img src="docs/screenshots/notch-open.png" alt="Pier open below the MacBook notch, showing now playing, storage, and system gauges" width="820">
 </p>
 
 ## Features
@@ -28,14 +20,12 @@ Glass strip instead.
 - **Hidden in the notch.** Closed, Pier is exactly the size of the notch, so you see nothing.
   Hover the notch, or drag a file onto it, and the panel grows out of it. On displays without a
   notch, the same invisible hover target sits in the middle of the menu bar.
-- **Live beside the notch.** While music plays, the notch grows a little to each side, showing the
-  album art on the left and a moving waveform on the right, like the Dynamic Island. Pin any
-  reading (CPU, GPU, temperature, memory, free disk space, battery) and it stays visible next to
-  the notch even while Pier is closed.
+- **Live beside the notch.** Pin any reading (CPU, GPU, temperature, memory, free disk space,
+  battery) and the notch grows a little to each side to show it, like the Dynamic Island, even
+  while Pier is closed. Turn on Now Playing to show album art and a moving waveform there while
+  music plays.
 
   <img src="docs/screenshots/notch-pinned.png" alt="CPU, memory, temperature, and battery readings pinned on both sides of the notch" width="620">
-- **Or on a screen edge.** A Liquid Glass strip with CPU load, CPU temperature, memory, and free
-  disk space that's always in view and opens into the full panel on hover.
 - **System.** CPU, GPU, memory, and CPU die temperature gauges, a 2-minute CPU history, free
   memory, swap, network speed, and battery. Readings turn orange or red when they run high, and
   always show the number too.
@@ -95,13 +85,12 @@ app is signed ad hoc, macOS may ask again after you rebuild.
 
 | To | Do this |
 | --- | --- |
-| Open the panel | Hover the notch (or the edge strip) |
+| Open the panel | Hover the notch |
 | Keep it open | Click the pin in the panel's header |
 | Show a reading beside the notch | Hover a gauge and click its pin, or **…** › Show Beside Notch |
-| Hide the music beside the notch | **…** › Show Beside Notch › turn off Now Playing |
-| Move it | **…** › Position › Hidden in Notch, Left Edge, or Right Edge |
+| Show the music beside the notch | **…** › Show Beside Notch › Now Playing |
 | Open on click instead of hover | **…** › turn off Open on Hover |
-| Stash a file | Drag it onto the notch or the strip |
+| Stash a file | Drag it onto the notch |
 | Take a screenshot to the shelf | **⌘⇧F5**, or the camera button on the shelf |
 | Hide or quit Pier | The dock icon in the menu bar |
 
@@ -119,7 +108,7 @@ the shelf only points to them.
 ## How it works
 
 Pier is SwiftUI on an `NSPanel` that floats above other windows without taking focus. A timer
-checks the pointer position so the panel can open from the notch or edge while letting clicks
+checks the pointer position so the panel can open from the notch while letting clicks
 pass through everywhere else.
 
 | Feature | Source |

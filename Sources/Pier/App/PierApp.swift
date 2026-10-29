@@ -162,9 +162,6 @@ struct DockSettingsMenuItems: View {
 
     var body: some View {
         @Bindable var dock = model.dock
-        Picker("Position", selection: $dock.placement) {
-            ForEach(DockState.Placement.allCases) { Text($0.title).tag($0) }
-        }
         Toggle("Open on Hover", isOn: $dock.openOnHover)
         Menu("Show Beside Notch") {
             Toggle("Now Playing", isOn: $dock.notchShowsMusic)

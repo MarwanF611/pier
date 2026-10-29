@@ -67,23 +67,8 @@ enum PanelTab: String, CaseIterable, Identifiable {
 @MainActor
 @Observable
 final class DockState {
-    enum Placement: String, CaseIterable, Identifiable {
-        /// Hidden in the notch until the pointer touches it.
-        case notch
-        /// A strip of vitals that's always visible on a screen edge.
-        case left, right
-        var id: String { rawValue }
-        var title: String {
-            switch self {
-            case .notch: "Hidden in Notch"
-            case .left: "Left Edge"
-            case .right: "Right Edge"
-            }
-        }
-    }
-
     var isExpanded = false
-    /// Frame of the visible glass surface in the dock window's coordinates (top-left origin).
+    /// Frame of the visible surface in the dock window's coordinates (top-left origin).
     var surfaceRect: CGRect = .zero
     var tab = PanelTab.home
     /// A file dragged over Pier switches to the shelf, where it will land.
@@ -104,13 +89,6 @@ final class DockState {
     var openOnHover = UserDefaults.standard.object(forKey: "openOnHover") as? Bool ?? true {
         didSet { UserDefaults.standard.set(openOnHover, forKey: "openOnHover") }
     }
-    var placement = Placement(rawValue: UserDefaults.standard.string(forKey: "placement") ?? "") ?? .notch {
-        didSet {
-            UserDefaults.standard.set(placement.rawValue, forKey: "placement")
-            isExpanded = false
-            onLayoutChange?()
-        }
-    }
     /// Size of the camera housing at the top of the screen, or of a stand-in hover target on
     /// displays without one. Set by the window controller.
     var notchSize = CGSize(width: 200, height: 32)
@@ -126,8 +104,9 @@ final class DockState {
     var notchShowsActivities = UserDefaults.standard.object(forKey: "notchShowsActivities") as? Bool ?? true {
         didSet { UserDefaults.standard.set(notchShowsActivities, forKey: "notchShowsActivities") }
     }
-    /// Show artwork and a waveform beside the notch while music plays.
-    var notchShowsMusic = UserDefaults.standard.object(forKey: "notchShowsMusic") as? Bool ?? true {
+    /// Show artwork and a waveform beside the notch while music plays. Off unless asked for, so
+    /// closed Pier is just the camera housing.
+    var notchShowsMusic = UserDefaults.standard.bool(forKey: "notchShowsMusic") {
         didSet { UserDefaults.standard.set(notchShowsMusic, forKey: "notchShowsMusic") }
     }
 

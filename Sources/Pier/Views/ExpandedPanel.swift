@@ -1,24 +1,17 @@
 import Charts
 import SwiftUI
 
+/// The open panel hanging from the notch, two columns wide.
 struct ExpandedPanel: View {
-    enum Layout {
-        /// One column, for the panel on a screen edge.
-        case column
-        /// Two columns, for the panel hanging from the notch.
-        case wide
-    }
-
     @Environment(AppModel.self) private var model
     var maxHeight: CGFloat
-    var layout: Layout = .column
 
     static let columnWidth: CGFloat = 348
-    static let wideWidth: CGFloat = columnWidth * 2 + 10
+    static let width: CGFloat = columnWidth * 2 + 10
 
     var body: some View {
         let content = VStack(spacing: 10) {
-            PanelHeader(layout: layout)
+            PanelHeader()
             tab(model.dock.tab)
         }
         .padding(12)
@@ -35,14 +28,8 @@ struct ExpandedPanel: View {
 
     @ViewBuilder
     private func tab(_ tab: PanelTab) -> some View {
-        switch (tab, layout) {
-        case (.home, .column):
-            VStack(spacing: 10) {
-                MusicSection()
-                SystemSection()
-                StorageSection()
-            }
-        case (.home, .wide):
+        switch tab {
+        case .home:
             HStack(alignment: .top, spacing: 10) {
                 VStack(spacing: 10) {
                     MusicSection()
@@ -54,43 +41,27 @@ struct ExpandedPanel: View {
                     .frame(width: Self.columnWidth)
                     .frame(maxHeight: .infinity)
             }
-        case (.notes, _): NotesSection().frame(width: width)
-        case (.clipboard, _): ClipboardSection().frame(width: width)
-        case (.claude, _): ClaudeSection().frame(width: width)
-        case (.shelf, _): ShelfSection().frame(width: width)
-        case (.wallpaper, _): WallpaperSection().frame(width: width)
-        case (.ask, _): AssistantSection().frame(width: width)
+        case .notes: NotesSection().frame(width: Self.width)
+        case .clipboard: ClipboardSection().frame(width: Self.width)
+        case .claude: ClaudeSection().frame(width: Self.width)
+        case .shelf: ShelfSection().frame(width: Self.width)
+        case .wallpaper: WallpaperSection().frame(width: Self.width)
+        case .ask: AssistantSection().frame(width: Self.width)
         }
     }
-
-    private var width: CGFloat? { layout == .wide ? Self.wideWidth : nil }
 }
 
-/// The Mac's name, the tabs, and the panel's own controls, in one row when there's room.
+/// The Mac's name, the tabs, and the panel's own controls, in one row.
 private struct PanelHeader: View {
     @Environment(AppModel.self) private var model
-    var layout: ExpandedPanel.Layout
 
     var body: some View {
-        Group {
-            if layout == .wide {
-                HStack(spacing: 4) {
-                    identity
-                    Spacer(minLength: 8)
-                    PanelTabBar()
-                    Spacer(minLength: 8)
-                    controls
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 4) {
-                        identity
-                        Spacer(minLength: 8)
-                        controls
-                    }
-                    PanelTabBar()
-                }
-            }
+        HStack(spacing: 4) {
+            identity
+            Spacer(minLength: 8)
+            PanelTabBar()
+            Spacer(minLength: 8)
+            controls
         }
         .padding(.horizontal, 6)
         .padding(.top, 2)
@@ -106,7 +77,7 @@ private struct PanelHeader: View {
                 .foregroundStyle(.secondary)
         }
         // Equal width on both sides keeps the tabs centered under the notch.
-        .frame(width: layout == .wide ? 180 : nil, alignment: .leading)
+        .frame(width: 180, alignment: .leading)
     }
 
     private var controls: some View {
@@ -132,7 +103,7 @@ private struct PanelHeader: View {
             .help("More")
             .accessibilityLabel("More")
         }
-        .frame(width: layout == .wide ? 180 : nil, alignment: .trailing)
+        .frame(width: 180, alignment: .trailing)
     }
 }
 

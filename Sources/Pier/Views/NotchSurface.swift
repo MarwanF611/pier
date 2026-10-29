@@ -18,7 +18,7 @@ struct NotchSurface: View {
         // The content decides the size; the black shape is drawn behind whatever that is.
         Group {
             if expanded {
-                ExpandedPanel(maxHeight: .infinity, layout: .wide)
+                ExpandedPanel(maxHeight: .infinity)
                     .padding(.top, notch.height - 6)
                     .padding(.horizontal, Self.flare + 4)
                     .padding(.bottom, 6)

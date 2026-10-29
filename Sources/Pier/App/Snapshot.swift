@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Development aid: `Pier --snapshot <folder>` renders the strip and the open panel over the
+/// Development aid: `Pier --snapshot <folder>` renders the closed and the open notch over the
 /// current wallpaper, in light and dark, and writes PNGs. No screen recording permission needed.
 @MainActor
 enum Snapshot {
@@ -31,13 +31,13 @@ enum Snapshot {
                 let view = DockRootView()
                     .environment(model)
                     .environment(\.colorScheme, appearance == .darkAqua ? .dark : .light)
-                    .frame(width: 520, height: 900)
+                    .frame(width: 860, height: 640)
                     .background {
                         if let wallpaper { Image(nsImage: wallpaper).resizable().aspectRatio(contentMode: .fill) }
                     }
                     .clipped()
 
-                let window = NSWindow(contentRect: NSRect(x: -4000, y: 0, width: 520, height: 900),
+                let window = NSWindow(contentRect: NSRect(x: -4000, y: 0, width: 860, height: 640),
                                       styleMask: [.borderless], backing: .buffered, defer: false)
                 window.appearance = NSAppearance(named: appearance)
                 let host = NSHostingView(rootView: view)
@@ -47,7 +47,7 @@ enum Snapshot {
 
                 guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { continue }
                 host.cacheDisplay(in: host.bounds, to: rep)
-                let name = "\(expanded ? "panel" : "strip")-\(appearance == .darkAqua ? "dark" : "light").png"
+                let name = "notch-\(expanded ? "open" : "closed")-\(appearance == .darkAqua ? "dark" : "light").png"
                 try? rep.representation(using: .png, properties: [:])?.write(to: folder.appendingPathComponent(name))
                 window.orderOut(nil)
             }
@@ -55,7 +55,7 @@ enum Snapshot {
     }
 
     /// Development aid: with `PIER_SELFSHOT=<folder>` set, captures the live dock window, with its
-    /// real Liquid Glass, closed and open in every placement. Only the wallpaper, the menu bar,
+    /// every tab and what shows beside the notch. Only the wallpaper, the menu bar,
     /// and Pier are captured, so other apps' windows never end up in a screenshot.
     static func captureLiveWindow(_ window: NSWindow, model: AppModel, to folder: URL) async {
         let dock = model.dock
@@ -64,10 +64,12 @@ enum Snapshot {
         let createImage = unsafeBitCast(symbol, to: CreateImage.self)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
-        let saved = (dock.openOnHover, dock.isPinned, dock.placement, dock.notchPins, dock.tab)
+        let saved = (dock.openOnHover, dock.isPinned, dock.notchPins, dock.tab)
         dock.openOnHover = false // the pointer may be resting over the dock
-        defer { (dock.openOnHover, dock.isPinned, dock.placement, dock.notchPins, dock.tab) = saved }
+        defer { (dock.openOnHover, dock.isPinned, dock.notchPins, dock.tab) = saved }
         dock.tab = .home
+        // Claude Code sessions at work on this Mac would show beside the notch in every capture.
+        model.claude.sessions.forEach(model.claude.forget)
 
         func capture(_ name: String) async {
             try? await Task.sleep(for: .seconds(2))
@@ -76,13 +78,10 @@ enum Snapshot {
                 .write(to: folder.appendingPathComponent(name))
         }
 
-        for placement in [DockState.Placement.notch, .right] {
-            dock.placement = placement
-            for expanded in [false, true] {
-                dock.isExpanded = expanded
-                dock.isPinned = expanded
-                await capture("live-\(placement.rawValue)-\(expanded ? "open" : "closed").png")
-            }
+        for expanded in [false, true] {
+            dock.isExpanded = expanded
+            dock.isPinned = expanded
+            await capture("live-notch-\(expanded ? "open" : "closed").png")
         }
 
         // A sample note, saved the way a typed one is, so the Notes tab has something to show.
@@ -92,7 +91,6 @@ enum Snapshot {
         let sample = model.notes.notes.first { $0.text.hasPrefix("Lecture 4: Fourier series") }
 
         // Every other tab of the open notch panel.
-        dock.placement = .notch
         dock.isPinned = true
         dock.isExpanded = true
         for tab in PanelTab.allCases where tab != .home {
@@ -143,7 +141,6 @@ enum Snapshot {
         model.claude.handle(claude.merging(["event": "SessionEnd"]) { $1 })
 
         // Readings pinned beside the closed notch.
-        dock.placement = .notch
         dock.isExpanded = false
         dock.isPinned = false
         dock.notchPins = [.cpu, .temperature, .memory, .battery]
